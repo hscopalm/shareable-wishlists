@@ -5,7 +5,7 @@ const WishlistItem = require('../models/WishlistItem');
 // Get all wishlist items
 router.get('/', async (req, res) => {
   try {
-    const items = await WishlistItem.find().sort({ createdAt: -1 });
+    const items = await WishlistItem.find({ user: req.user._id }).sort({ createdAt: -1 });
     res.json(items);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -14,7 +14,10 @@ router.get('/', async (req, res) => {
 
 // Create a new wishlist item
 router.post('/', async (req, res) => {
-  const item = new WishlistItem(req.body);
+  const item = new WishlistItem({
+    ...req.body,
+    user: req.user._id
+  });
   try {
     const newItem = await item.save();
     res.status(201).json(newItem);
@@ -26,16 +29,10 @@ router.post('/', async (req, res) => {
 // Update a wishlist item
 router.put('/:id', async (req, res) => {
   try {
-    const item = await WishlistItem.findById(req.params.id);
+    const item = await WishlistItem.findOne({ _id: req.params.id, user: req.user._id });
     if (!item) return res.status(404).json({ message: 'Item not found' });
     
-    // Ensure price is properly handled
-    const updateData = {
-      ...req.body,
-      price: req.body.price !== undefined ? parseFloat(req.body.price) : undefined
-    };
-    
-    Object.assign(item, updateData);
+    Object.assign(item, req.body);
     const updatedItem = await item.save();
     res.json(updatedItem);
   } catch (error) {
@@ -46,7 +43,7 @@ router.put('/:id', async (req, res) => {
 // Delete a wishlist item
 router.delete('/:id', async (req, res) => {
   try {
-    const item = await WishlistItem.findById(req.params.id);
+    const item = await WishlistItem.findOne({ _id: req.params.id, user: req.user._id });
     if (!item) return res.status(404).json({ message: 'Item not found' });
     
     await item.deleteOne();

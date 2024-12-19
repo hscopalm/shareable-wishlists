@@ -2,27 +2,27 @@ import axios from 'axios';
 
 const API_BASE_URL = 'http://localhost:5000/api';
 
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  withCredentials: true
+});
+
 export const fetchWishlistItems = async () => {
-  const response = await axios.get(`${API_BASE_URL}/wishlist`);
+  const response = await api.get('/wishlist');
   return response.data;
 };
 
 export const createWishlistItem = async (itemData) => {
-  const response = await axios.post(`${API_BASE_URL}/wishlist`, itemData);
+  const response = await api.post('/wishlist', itemData);
   return response.data;
 };
 
 export const updateWishlistItem = async (id, itemData) => {
-  const formattedData = {
-    ...itemData,
-    price: itemData.price ? parseFloat(itemData.price) : undefined
-  };
-  
-  const response = await axios.put(`${API_BASE_URL}/wishlist/${id}`, formattedData);
+  const response = await api.put(`/wishlist/${id}`, itemData);
   return response.data;
 };
 
 export const deleteWishlistItem = async (id) => {
-  const response = await axios.delete(`${API_BASE_URL}/wishlist/${id}`);
+  const response = await api.delete(`/wishlist/${id}`);
   return response.data;
 }; 
