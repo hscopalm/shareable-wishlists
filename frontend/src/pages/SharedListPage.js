@@ -1,49 +1,50 @@
 import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   Grid,
-  Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
+  Typography,
   Box,
-  SpeedDial,
-  SpeedDialIcon,
   Paper,
   IconButton,
   Tooltip,
-  Typography,
+  Avatar,
+  Button,
 } from '@mui/material';
 import {
-  Add as AddIcon,
-  Share as ShareIcon,
+  ArrowBack as ArrowBackIcon,
   AccessTime as TimeIcon,
   PriorityHigh as PriorityIcon,
   AttachMoney as PriceIcon,
 } from '@mui/icons-material';
-import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
-import ShareListDialog from '../components/ShareListDialog';
-import { fetchWishlistItems } from '../services/api';
+import axios from 'axios';
 
-function WishlistPage() {
+function SharedListPage() {
   const [items, setItems] = useState([]);
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [openShareDialog, setOpenShareDialog] = useState(false);
+  const [owner, setOwner] = useState(null);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
+  const { userId } = useParams();
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    loadItems();
-  }, []);
-
-  const loadItems = async () => {
+  const loadSharedList = async () => {
     try {
-      const data = await fetchWishlistItems();
-      setItems(data);
+      const response = await axios.get(`http://localhost:5000/api/share/shared-list/${userId}`, {
+        withCredentials: true
+      });
+      setItems(response.data.items);
+      setOwner(response.data.owner);
     } catch (error) {
-      console.error('Error loading wishlist items:', error);
+      console.error('Error loading shared list:', error);
+      if (error.response?.status === 404 || error.response?.status === 403) {
+        navigate('/shared');
+      }
     }
   };
+
+  useEffect(() => {
+    loadSharedList();
+  }, [userId, navigate]);
 
   const handleSort = (field) => {
     if (field === sortBy) {
@@ -117,30 +118,30 @@ function WishlistPage() {
   return (
     <>
       <Box sx={{ mb: 3 }}>
-        <Grid container spacing={2} alignItems="center" justifyContent="space-between">
+        <Grid container spacing={2} alignItems="center">
           <Grid item>
             <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setOpenAddDialog(true)}
-              startIcon={<AddIcon />}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                px: 3,
-                py: 1,
-                backgroundColor: '#4CAF50',
-                '&:hover': {
-                  backgroundColor: '#45a049',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 5px 15px rgba(76, 175, 80, 0.3)',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
+              startIcon={<ArrowBackIcon />}
+              onClick={() => navigate('/shared')}
+              sx={{ color: 'text.secondary' }}
             >
-              Add New Item
+              Back to Shared Lists
             </Button>
           </Grid>
+        </Grid>
+        {owner && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 3 }}>
+            <Avatar
+              src={owner.picture}
+              alt={owner.name}
+              sx={{ width: 48, height: 48 }}
+            />
+            <Typography variant="h5">
+              {owner.name}'s Wishlist
+            </Typography>
+          </Box>
+        )}
+        <Grid container spacing={2} alignItems="center" justifyContent="flex-end">
           <Grid item>
             <Paper
               elevation={0}
@@ -171,43 +172,22 @@ function WishlistPage() {
           <Grid item xs={12} sm={6} md={4} lg={3} key={item._id}>
             <WishlistItem 
               item={item} 
-              onUpdate={loadItems}
-              onStatusUpdate={handleStatusUpdate} 
+              isShared={true}
+              onUpdate={loadSharedList}
+              onStatusUpdate={handleStatusUpdate}
             />
           </Grid>
         ))}
+        {items.length === 0 && (
+          <Grid item xs={12}>
+            <Typography color="text.secondary" align="center">
+              No items in this wishlist
+            </Typography>
+          </Grid>
+        )}
       </Grid>
-
-      <SpeedDial
-        ariaLabel="share"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-        icon={<ShareIcon />}
-        onClick={() => setOpenShareDialog(true)}
-      />
-
-      <Dialog 
-        open={openAddDialog} 
-        onClose={() => setOpenAddDialog(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>Add New Wishlist Item</DialogTitle>
-        <DialogContent>
-          <WishlistForm
-            onSubmit={() => {
-              setOpenAddDialog(false);
-              loadItems();
-            }}
-          />
-        </DialogContent>
-      </Dialog>
-
-      <ShareListDialog 
-        open={openShareDialog}
-        onClose={() => setOpenShareDialog(false)}
-      />
     </>
   );
 }
 
-export default WishlistPage; 
+export default SharedListPage; 

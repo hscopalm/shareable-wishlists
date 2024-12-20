@@ -6,6 +6,8 @@ import LoginPage from './pages/LoginPage';
 import Navbar from './components/Navbar';
 import { theme } from './theme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
+import SharedListsPage from './pages/SharedListsPage';
+import SharedListPage from './pages/SharedListPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -58,7 +60,22 @@ function AppContent() {
                   </ProtectedRoute>
                 }
               />
-              {/* Catch all other routes and redirect to home */}
+              <Route
+                path="/shared"
+                element={
+                  <ProtectedRoute>
+                    <SharedListsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/shared/:userId"
+                element={
+                  <ProtectedRoute>
+                    <SharedListPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Container>

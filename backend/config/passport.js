@@ -1,6 +1,8 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
+const PendingShare = require('../models/PendingShare');
+const SharedList = require('../models/SharedList');
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -31,14 +33,30 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         let user = await User.findOne({ googleId: profile.id });
+        const email = profile.emails[0].value.toLowerCase();
         
         if (!user) {
+          // Create new user
           user = await User.create({
             googleId: profile.id,
-            email: profile.emails[0].value,
+            email: email,
             name: profile.displayName,
             picture: profile.photos[0].value
           });
+
+          // Check for pending shares
+          const pendingShares = await PendingShare.find({ email });
+          
+          // Convert pending shares to actual shares
+          if (pendingShares.length > 0) {
+            await Promise.all(pendingShares.map(async (pending) => {
+              await SharedList.create({
+                owner: pending.owner,
+                sharedWith: user._id
+              });
+              await pending.deleteOne();
+            }));
+          }
         }
         
         return done(null, user);

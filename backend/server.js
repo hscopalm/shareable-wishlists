@@ -12,8 +12,10 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const session = require('express-session');
 const passport = require('./config/passport');
+const http = require('http');
 
 const app = express();
+const server = http.createServer(app);
 
 // Middleware
 app.use(cors({
@@ -48,6 +50,7 @@ mongoose.connect(process.env.MONGODB_URI, {
 // Import routes
 const authRoutes = require('./routes/auth');
 const wishlistRoutes = require('./routes/wishlist');
+const sharingRoutes = require('./routes/sharing');
 
 // Auth middleware
 const requireAuth = (req, res, next) => {
@@ -60,6 +63,7 @@ const requireAuth = (req, res, next) => {
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/wishlist', requireAuth, wishlistRoutes);
+app.use('/api/share', requireAuth, sharingRoutes);
 
 // Debug route to verify server is running
 app.get('/', (req, res) => {
@@ -67,6 +71,6 @@ app.get('/', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 }); 
