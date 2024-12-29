@@ -30,7 +30,7 @@ function LoginPage() {
         }}
       >
         <Typography variant="h5" color="white">
-          Welcome to Wishlist
+          Welcome to Gift Guru
         </Typography>
         <Button
           variant="contained"

@@ -8,6 +8,8 @@ import { theme } from './theme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SharedListsPage from './pages/SharedListsPage';
 import SharedListPage from './pages/SharedListPage';
+import { ListProvider } from './contexts/ListContext';
+import ListsPage from './pages/ListsPage';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -52,30 +54,26 @@ function AppContent() {
           <Container maxWidth="lg" sx={{ pt: 4, pb: 8 }}>
             <Routes>
               <Route path="/login" element={<LoginWrapper />} />
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <WishlistPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/shared"
-                element={
-                  <ProtectedRoute>
-                    <SharedListsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/shared/:userId"
-                element={
-                  <ProtectedRoute>
-                    <SharedListPage />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <ListsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/list/:id" element={
+                <ProtectedRoute>
+                  <WishlistPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/shared" element={
+                <ProtectedRoute>
+                  <SharedListsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/shared/:userId" element={
+                <ProtectedRoute>
+                  <SharedListPage />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<Navigate to="/" />} />
             </Routes>
           </Container>
@@ -88,7 +86,9 @@ function AppContent() {
 function App() {
   return (
     <AuthProvider>
-      <AppContent />
+      <ListProvider>
+        <AppContent />
+      </ListProvider>
     </AuthProvider>
   );
 }

@@ -7,195 +7,178 @@ import {
   DialogContent,
   Box,
   SpeedDial,
-  SpeedDialIcon,
-  Paper,
-  IconButton,
-  Tooltip,
   Typography,
+  Avatar,
 } from '@mui/material';
 import {
   Add as AddIcon,
   Share as ShareIcon,
-  AccessTime as TimeIcon,
-  PriorityHigh as PriorityIcon,
-  AttachMoney as PriceIcon,
 } from '@mui/icons-material';
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
-import { fetchWishlistItems } from '../services/api';
+import { useList } from '../contexts/ListContext';
+import { deleteWishlistItem, fetchListItems } from '../services/api';
+import { useParams } from 'react-router-dom';
 
 function WishlistPage() {
+  const { id: listId } = useParams();
+  const { currentList, setCurrentList, isSharedList } = useList();
   const [items, setItems] = useState([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openShareDialog, setOpenShareDialog] = useState(false);
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortDirection, setSortDirection] = useState('desc');
+  const [editingItem, setEditingItem] = useState(null);
 
   useEffect(() => {
-    loadItems();
-  }, []);
+    const loadListData = async () => {
+      try {
+        const data = await fetchListItems(listId);
+        setCurrentList(data.list, data.isShared);
+        setItems(data.items || []);
+      } catch (error) {
+        console.error('Error loading list:', error);
+      }
+    };
+
+    if (listId) {
+      loadListData();
+    }
+  }, [listId, setCurrentList]);
 
   const loadItems = async () => {
     try {
-      const data = await fetchWishlistItems();
-      setItems(data);
+      const data = await fetchListItems(listId);
+      setItems(data.items || []);
+      setCurrentList(data.list, data.isShared);
     } catch (error) {
       console.error('Error loading wishlist items:', error);
     }
   };
 
-  const handleSort = (field) => {
-    if (field === sortBy) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortDirection('desc');
+  const handleEditItem = (item) => {
+    setEditingItem(item);
+    setOpenAddDialog(true);
+  };
+
+  const handleDeleteItem = async (item) => {
+    if (window.confirm('Are you sure you want to delete this item?')) {
+      try {
+        await deleteWishlistItem(item._id);
+        await loadItems();
+      } catch (error) {
+        console.error('Error deleting item:', error);
+      }
     }
   };
 
-  const getSortedItems = () => {
-    return [...items].sort((a, b) => {
-      let comparison = 0;
-      switch (sortBy) {
-        case 'priority':
-          comparison = b.priority - a.priority;
-          break;
-        case 'price':
-          comparison = (b.price || 0) - (a.price || 0);
-          break;
-        case 'createdAt':
-          comparison = new Date(b.createdAt) - new Date(a.createdAt);
-          break;
-        default:
-          return 0;
-      }
-      return sortDirection === 'asc' ? -comparison : comparison;
-    });
-  };
-
-  const SortButton = ({ field, icon: Icon, label }) => (
-    <Tooltip title={`Sort by ${label}`}>
-      <IconButton
-        onClick={() => handleSort(field)}
-        sx={{
-          backgroundColor: sortBy === field ? 'rgba(33, 150, 243, 0.1)' : 'transparent',
-          borderRadius: '12px',
-          transition: 'all 0.2s ease-in-out',
-          '&:hover': {
-            backgroundColor: 'rgba(33, 150, 243, 0.2)',
-          },
-        }}
-      >
-        <Icon
-          sx={{
-            color: sortBy === field ? '#2196F3' : 'text.secondary',
-            transition: 'transform 0.2s ease-in-out',
-            transform: sortBy === field && sortDirection === 'asc' ? 'rotate(180deg)' : 'none',
-          }}
-        />
-      </IconButton>
-    </Tooltip>
-  );
-
-  const handleStatusUpdate = (itemId, status) => {
-    setItems(prevItems => 
-      prevItems.map(item => {
-        if (item._id === itemId) {
-          const existingStatuses = item.statuses || [];
-          const otherStatuses = existingStatuses.filter(s => s.user._id !== status.user._id);
-          return {
-            ...item,
-            statuses: [...otherStatuses, status]
-          };
-        }
-        return item;
-      })
-    );
-  };
-
   return (
-    <>
-      <Box sx={{ mb: 3 }}>
-        <Grid container spacing={2} alignItems="center" justifyContent="space-between">
-          <Grid item>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={() => setOpenAddDialog(true)}
-              startIcon={<AddIcon />}
-              sx={{
-                borderRadius: '12px',
-                textTransform: 'none',
-                px: 3,
-                py: 1,
-                backgroundColor: '#4CAF50',
-                '&:hover': {
-                  backgroundColor: '#45a049',
-                  transform: 'translateY(-2px)',
-                  boxShadow: '0 5px 15px rgba(76, 175, 80, 0.3)',
-                },
-                transition: 'all 0.2s ease-in-out',
-              }}
-            >
-              Add New Item
-            </Button>
-          </Grid>
-          <Grid item>
-            <Paper
-              elevation={0}
-              sx={{
-                display: 'flex',
-                gap: 1,
-                p: 0.5,
-                backgroundColor: 'rgba(46, 52, 64, 0.3)',
-                borderRadius: '14px',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <Box sx={{ display: 'flex', alignItems: 'center', px: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                  Sort by:
-                </Typography>
-                <SortButton field="createdAt" icon={TimeIcon} label="Date" />
-                <SortButton field="priority" icon={PriorityIcon} label="Priority" />
-                <SortButton field="price" icon={PriceIcon} label="Price" />
+    <Box>
+      <Box mb={3}>
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+          <Box>
+            <Typography variant="h5" gutterBottom>
+              {currentList?.name}
+            </Typography>
+            
+            {currentList?.description && (
+              <Typography 
+                variant="body2" 
+                color="text.secondary"
+                sx={{ mb: 2 }}
+              >
+                {currentList.description}
+              </Typography>
+            )}
+
+            {isSharedList && currentList?.owner && (
+              <Box 
+                display="flex" 
+                alignItems="center" 
+                sx={{ 
+                  mt: 1,
+                  p: 1.5,
+                  borderRadius: 1,
+                  backgroundColor: 'rgba(0, 0, 0, 0.02)',
+                }}
+              >
+                <Avatar
+                  src={currentList.owner.picture}
+                  alt={currentList.owner.name}
+                  sx={{ 
+                    width: 40, 
+                    height: 40,
+                    mr: 2,
+                    border: '2px solid white',
+                    boxShadow: 1
+                  }}
+                >
+                  {currentList.owner.name[0]}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    List Owner
+                  </Typography>
+                  <Typography variant="body1">
+                    {currentList.owner.name}
+                  </Typography>
+                </Box>
               </Box>
-            </Paper>
-          </Grid>
-        </Grid>
+            )}
+          </Box>
+
+          {!isSharedList && (
+            <Button
+              startIcon={<AddIcon />}
+              variant="contained"
+              onClick={() => setOpenAddDialog(true)}
+            >
+              Add Item
+            </Button>
+          )}
+        </Box>
       </Box>
 
       <Grid container spacing={2}>
-        {getSortedItems().map((item) => (
+        {items.map((item) => (
           <Grid item xs={12} sm={6} md={4} lg={3} key={item._id}>
             <WishlistItem 
               item={item} 
-              onUpdate={loadItems}
-              onStatusUpdate={handleStatusUpdate} 
+              onEdit={!isSharedList ? handleEditItem : undefined}
+              onDelete={!isSharedList ? handleDeleteItem : undefined}
             />
           </Grid>
         ))}
       </Grid>
 
-      <SpeedDial
-        ariaLabel="share"
-        sx={{ position: 'fixed', bottom: 16, right: 16 }}
-        icon={<ShareIcon />}
-        onClick={() => setOpenShareDialog(true)}
-      />
+      {!isSharedList && (
+        <SpeedDial
+          ariaLabel="share"
+          sx={{ position: 'fixed', bottom: 16, right: 16 }}
+          icon={<ShareIcon />}
+          onClick={() => setOpenShareDialog(true)}
+        />
+      )}
 
       <Dialog 
         open={openAddDialog} 
-        onClose={() => setOpenAddDialog(false)}
+        onClose={() => {
+          setOpenAddDialog(false);
+          setEditingItem(null);
+        }}
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Add New Wishlist Item</DialogTitle>
+        <DialogTitle>
+          {editingItem ? 'Edit Item' : 'Add New Item'}
+        </DialogTitle>
         <DialogContent>
           <WishlistForm
-            onSubmit={() => {
+            listId={currentList?._id}
+            initialData={editingItem}
+            onSubmit={(savedItem) => {
+              console.log('Item saved:', savedItem);
               setOpenAddDialog(false);
+              setEditingItem(null);
               loadItems();
             }}
           />
@@ -205,8 +188,9 @@ function WishlistPage() {
       <ShareListDialog 
         open={openShareDialog}
         onClose={() => setOpenShareDialog(false)}
+        listId={currentList?._id}
       />
-    </>
+    </Box>
   );
 }
 

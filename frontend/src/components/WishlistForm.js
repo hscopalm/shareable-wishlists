@@ -12,22 +12,28 @@ import {
 } from '@mui/material';
 import { createWishlistItem, updateWishlistItem } from '../services/api';
 
-function WishlistForm({ initialData, onSubmit, isEditing }) {
+function WishlistForm({ listId, initialData, onSubmit }) {
   const [formData, setFormData] = useState({
     title: '',
     description: '',
+    price: '',
+    priority: '',
     link: '',
     imageUrl: '',
     notes: '',
-    price: '',
-    priority: 3,
+    ...initialData
   });
 
   useEffect(() => {
     if (initialData) {
       setFormData({
-        ...initialData,
-        price: initialData.price || ''
+        title: initialData.title || '',
+        description: initialData.description || '',
+        price: initialData.price || '',
+        priority: initialData.priority || '',
+        link: initialData.link || '',
+        imageUrl: initialData.imageUrl || '',
+        notes: initialData.notes || '',
       });
     }
   }, [initialData]);
@@ -43,32 +49,25 @@ function WishlistForm({ initialData, onSubmit, isEditing }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const submissionData = {
-        ...formData,
-        price: formData.price ? parseFloat(formData.price) : undefined
-      };
-      console.log('Submitting data:', submissionData);
-
-      if (isEditing) {
-        const response = await updateWishlistItem(initialData._id, submissionData);
-        console.log('Update response:', response);
+      console.log('Submitting form:', { formData, listId, initialData });
+      let response;
+      if (initialData) {
+        response = await updateWishlistItem(initialData._id, {
+          ...formData,
+          list: listId
+        });
       } else {
-        const response = await createWishlistItem(submissionData);
-        console.log('Create response:', response);
+        const submitData = {
+          ...formData,
+          list: listId
+        };
+        console.log('Creating new item:', submitData);
+        response = await createWishlistItem(submitData);
       }
-      
-      setFormData({
-        title: '',
-        description: '',
-        link: '',
-        imageUrl: '',
-        notes: '',
-        price: '',
-        priority: 3,
-      });
-      onSubmit();
+      console.log('Submit response:', response);
+      onSubmit(response);
     } catch (error) {
-      console.error('Error saving wishlist item:', error);
+      console.error('Error saving item:', error);
     }
   };
 
@@ -143,7 +142,7 @@ function WishlistForm({ initialData, onSubmit, isEditing }) {
         </FormControl>
         <DialogActions>
           <Button type="submit" variant="contained" color="primary">
-            {isEditing ? 'Update' : 'Add'} Item
+            {initialData ? 'Update' : 'Add'} Item
           </Button>
         </DialogActions>
       </Stack>

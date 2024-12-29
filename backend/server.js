@@ -13,6 +13,7 @@ const cors = require('cors');
 const session = require('express-session');
 const passport = require('./config/passport');
 const http = require('http');
+const SharedList = require('./models/SharedList');
 
 const app = express();
 const server = http.createServer(app);
@@ -47,10 +48,29 @@ mongoose.connect(process.env.MONGODB_URI, {
 .then(() => console.log('Successfully connected to MongoDB.'))
 .catch((error) => console.error('Error connecting to MongoDB:', error));
 
+mongoose.connection.on('connected', async () => {
+  try {
+    // List all collections
+    const collections = await mongoose.connection.db.listCollections().toArray();
+    console.log('Available collections:', collections.map(c => c.name));
+    
+    // Verify SharedList model
+    console.log('SharedList model:', mongoose.models.SharedList);
+    
+    // Create test indices
+    await SharedList.createIndexes();
+    console.log('SharedList indices created');
+  } catch (error) {
+    console.error('Error during startup checks:', error);
+  }
+});
+
 // Import routes
 const authRoutes = require('./routes/auth');
 const wishlistRoutes = require('./routes/wishlist');
 const sharingRoutes = require('./routes/sharing');
+const adminRoutes = require('./routes/admin');
+const listRoutes = require('./routes/lists');
 
 // Auth middleware
 const requireAuth = (req, res, next) => {
@@ -63,7 +83,9 @@ const requireAuth = (req, res, next) => {
 // Use routes
 app.use('/api/auth', authRoutes);
 app.use('/api/wishlist', requireAuth, wishlistRoutes);
-app.use('/api/share', requireAuth, sharingRoutes);
+app.use('/api', requireAuth, sharingRoutes);
+app.use('/api/admin', requireAuth, adminRoutes);
+app.use('/api/lists', requireAuth, listRoutes);
 
 // Debug route to verify server is running
 app.get('/', (req, res) => {

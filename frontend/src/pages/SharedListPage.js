@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
   Grid,
@@ -18,8 +18,12 @@ import {
 } from '@mui/icons-material';
 import WishlistItem from '../components/WishlistItem';
 import axios from 'axios';
+import { useAuth } from '../contexts/AuthContext';
+import { useList } from '../contexts/ListContext';
 
 function SharedListPage() {
+  const { user } = useAuth();
+  const { setIsSharedList } = useList();
   const [items, setItems] = useState([]);
   const [owner, setOwner] = useState(null);
   const [sortBy, setSortBy] = useState('createdAt');
@@ -27,7 +31,12 @@ function SharedListPage() {
   const { userId } = useParams();
   const navigate = useNavigate();
 
-  const loadSharedList = async () => {
+  useEffect(() => {
+    setIsSharedList(true);
+    return () => setIsSharedList(false);
+  }, [setIsSharedList]);
+
+  const loadSharedList = useCallback(async () => {
     try {
       const response = await axios.get(`http://localhost:5000/api/share/shared-list/${userId}`, {
         withCredentials: true
@@ -40,11 +49,11 @@ function SharedListPage() {
         navigate('/shared');
       }
     }
-  };
+  }, [userId, navigate]);
 
   useEffect(() => {
     loadSharedList();
-  }, [userId, navigate]);
+  }, [loadSharedList]);
 
   const handleSort = (field) => {
     if (field === sortBy) {
@@ -98,22 +107,6 @@ function SharedListPage() {
       </IconButton>
     </Tooltip>
   );
-
-  const handleStatusUpdate = (itemId, status) => {
-    setItems(prevItems => 
-      prevItems.map(item => {
-        if (item._id === itemId) {
-          const existingStatuses = item.statuses || [];
-          const otherStatuses = existingStatuses.filter(s => s.user._id !== status.user._id);
-          return {
-            ...item,
-            statuses: [...otherStatuses, status]
-          };
-        }
-        return item;
-      })
-    );
-  };
 
   return (
     <>
@@ -171,10 +164,8 @@ function SharedListPage() {
         {getSortedItems().map((item) => (
           <Grid item xs={12} sm={6} md={4} lg={3} key={item._id}>
             <WishlistItem 
-              item={item} 
-              isShared={true}
+              item={item}
               onUpdate={loadSharedList}
-              onStatusUpdate={handleStatusUpdate}
             />
           </Grid>
         ))}

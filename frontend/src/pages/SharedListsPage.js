@@ -1,20 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Grid,
-  Typography,
   Box,
+  Typography,
+  Grid,
   Card,
   CardContent,
   Avatar,
-  Button,
+  Skeleton,
+  CardActionArea
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { getSharedWithMe } from '../services/api';
+import { formatDistanceToNow } from 'date-fns';
+import { useList } from '../contexts/ListContext';
+import WishlistItem from '../components/WishlistItem';
 
 function SharedListsPage() {
   const [sharedLists, setSharedLists] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const { setCurrentList } = useList();
 
   useEffect(() => {
     loadSharedLists();
@@ -22,10 +27,8 @@ function SharedListsPage() {
 
   const loadSharedLists = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/share/shared-with-me', {
-        withCredentials: true
-      });
-      setSharedLists(response.data);
+      const data = await getSharedWithMe();
+      setSharedLists(data);
     } catch (error) {
       console.error('Error loading shared lists:', error);
     } finally {
@@ -33,55 +36,93 @@ function SharedListsPage() {
     }
   };
 
+  const handleListClick = (list) => {
+    setCurrentList(list);
+    navigate(`/list/${list._id}`);
+  };
+
+  const handleStatusUpdate = (itemId, newStatus) => {
+    setSharedLists(prevLists => 
+      prevLists.map(list => ({
+        ...list,
+        items: list.items?.map(item => 
+          item._id === itemId 
+            ? { ...item, status: newStatus }
+            : item
+        )
+      }))
+    );
+  };
+
+  if (loading) {
+    return <Skeleton variant="rectangular" height={200} />;
+  }
+
   return (
     <Box>
       <Typography variant="h5" sx={{ mb: 3 }}>
         Lists Shared With Me
       </Typography>
-      
-      <Grid container spacing={2}>
-        {sharedLists.map((sharedList) => (
-          <Grid item xs={12} sm={6} md={4} key={sharedList.owner._id}>
-            <Card 
-              sx={{ 
-                cursor: 'pointer',
-                transition: 'transform 0.2s',
-                '&:hover': {
-                  transform: 'translateY(-4px)',
-                }
-              }}
-              onClick={() => {
-                console.log('Navigating to shared list:', sharedList.owner._id);
-                navigate(`/shared/${sharedList.owner._id}`);
-              }}
-            >
-              <CardContent>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Avatar 
-                    src={sharedList.owner.picture} 
-                    alt={sharedList.owner.name}
-                    sx={{ width: 56, height: 56 }}
-                  />
-                  <Box>
-                    <Typography variant="h6">
-                      {sharedList.owner.name}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {sharedList.items.length} items
-                    </Typography>
-                  </Box>
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
 
-      {sharedLists.length === 0 && !loading && (
-        <Typography color="text.secondary" align="center">
-          No wishlists have been shared with you yet
-        </Typography>
-      )}
+      <Grid container spacing={3}>
+        {sharedLists.length === 0 ? (
+          <Grid item xs={12}>
+            <Typography color="text.secondary" align="center">
+              No lists have been shared with you yet
+            </Typography>
+          </Grid>
+        ) : (
+          sharedLists.map((list) => (
+            <Grid item xs={12} sm={6} md={4} key={list._id}>
+              <Card>
+                <CardActionArea onClick={() => handleListClick(list)}>
+                  <CardContent>
+                    <Box display="flex" alignItems="center" mb={2}>
+                      <Avatar 
+                        src={list.owner.picture} 
+                        alt={list.owner.name}
+                        sx={{ mr: 2 }}
+                      >
+                        {list.owner.name[0]}
+                      </Avatar>
+                      <Box>
+                        <Typography variant="h6" component="div">
+                          {list.name}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {list.owner.name}
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {list.description && (
+                      <Typography 
+                        variant="body2" 
+                        color="text.secondary"
+                        sx={{ 
+                          mt: 1,
+                          mb: 2,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis'
+                        }}
+                      >
+                        {list.description}
+                      </Typography>
+                    )}
+
+                    <Typography variant="caption" color="text.secondary">
+                      Shared {formatDistanceToNow(new Date(list.sharedAt))} ago
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+              </Card>
+            </Grid>
+          ))
+        )}
+      </Grid>
     </Box>
   );
 }

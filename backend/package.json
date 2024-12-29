@@ -1,7 +1,7 @@
 {
-  "name": "wishlist-backend",
+  "name": "backend",
   "version": "1.0.0",
-  "description": "Backend for wishlist application",
+  "description": "Backend for Gift Guru - A smart gift management platform",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -9,10 +9,12 @@
   },
   "dependencies": {
     "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.0.3",
     "express": "^4.18.2",
     "express-session": "^1.18.0",
     "mongoose": "^7.0.3",
+    "nodemailer": "^6.9.16",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"
   },

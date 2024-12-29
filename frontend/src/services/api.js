@@ -7,14 +7,14 @@ const api = axios.create({
   withCredentials: true
 });
 
-export const fetchWishlistItems = async () => {
-  const response = await api.get('/wishlist');
-  return response.data;
-};
-
-export const createWishlistItem = async (itemData) => {
-  const response = await api.post('/wishlist', itemData);
-  return response.data;
+export const createWishlistItem = async (data) => {
+  try {
+    const response = await api.post('/wishlist', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating wishlist item:', error);
+    throw error;
+  }
 };
 
 export const updateWishlistItem = async (id, itemData) => {
@@ -25,4 +25,78 @@ export const updateWishlistItem = async (id, itemData) => {
 export const deleteWishlistItem = async (id) => {
   const response = await api.delete(`/wishlist/${id}`);
   return response.data;
-}; 
+};
+
+export const fetchLists = async () => {
+  const response = await api.get('/lists');
+  return response.data;
+};
+
+export const createList = async (listData) => {
+  const response = await api.post('/lists', listData);
+  return response.data;
+};
+
+export const updateList = async (listId, listData) => {
+  try {
+    console.log('Making update request:', { listId, listData });
+    const response = await api.put(`/lists/${listId}`, listData);
+    console.log('Update response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating list:', error);
+    throw error;
+  }
+};
+
+export const deleteList = async (listId) => {
+  const response = await api.delete(`/lists/${listId}`);
+  return response.data;
+};
+
+export const fetchListItems = async (listId) => {
+  const response = await api.get(`/lists/${listId}`);
+  return response.data;
+};
+
+export const shareList = async (listId, email) => {
+  const response = await api.post(`/share/${listId}`, { email });
+  return response.data;
+};
+
+export const getSharedUsers = async (listId) => {
+  try {
+    console.log('Making API request to get shared users for list:', listId);
+    const response = await api.get(`/share/${listId}/shared-with`);
+    console.log('API response for shared users:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching shared users:', error);
+    throw error;
+  }
+};
+
+export const unshareList = async (listId, userId) => {
+  const response = await api.delete(`/share/${listId}/unshare/${userId}`);
+  return response.data;
+};
+
+export const getSharedWithMe = async () => {
+  const response = await api.get('/share/shared-with-me');
+  return response.data;
+};
+
+export const updateLastViewed = async (listId) => {
+  if (!listId) {
+    console.error('No list ID provided to updateLastViewed');
+    return;
+  }
+  
+  try {
+    const response = await api.post(`/share/${listId}/view`);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating view:', error);
+    throw error;
+  }
+};

@@ -11,13 +11,26 @@ const sharedListSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  list: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'List',
+    required: true
+  },
+  lastViewed: {
+    type: Date,
+    default: null
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
+}, {
+  timestamps: true
 });
 
-// Ensure a user can't share their list multiple times with the same person
-sharedListSchema.index({ owner: 1, sharedWith: 1 }, { unique: true });
+// Create a compound unique index for list + sharedWith
+sharedListSchema.index({ list: 1, sharedWith: 1 }, { unique: true });
 
-module.exports = mongoose.model('SharedList', sharedListSchema); 
+const SharedList = mongoose.model('SharedList', sharedListSchema);
+
+module.exports = SharedList; 

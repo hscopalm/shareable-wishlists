@@ -32,9 +32,9 @@ const wishlistItemSchema = new mongoose.Schema({
     min: 1,
     max: 5
   },
-  user: {
+  list: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    ref: 'List',
     required: true
   },
   createdAt: {
