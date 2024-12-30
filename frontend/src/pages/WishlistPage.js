@@ -9,11 +9,19 @@ import {
   SpeedDial,
   Typography,
   Avatar,
+  Paper,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import Masonry from '@mui/lab/Masonry';
 import {
   Add as AddIcon,
   Share as ShareIcon,
+  AccessTime as TimeIcon,
+  PriorityHigh as PriorityIcon,
+  AttachMoney as PriceIcon,
+  ArrowUpward as ArrowUpIcon,
+  ArrowDownward as ArrowDownIcon,
 } from '@mui/icons-material';
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
@@ -30,6 +38,8 @@ function WishlistPage() {
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [sortBy, setSortBy] = useState('createdAt');
+  const [sortDirection, setSortDirection] = useState('desc');
 
   useEffect(() => {
     const loadListData = async () => {
@@ -82,10 +92,73 @@ function WishlistPage() {
     }
   };
 
+  const handleSort = (field) => {
+    if (field === sortBy) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortedItems = () => {
+    return [...items].sort((a, b) => {
+      let comparison = 0;
+      switch (sortBy) {
+        case 'priority':
+          comparison = (b.priority || 0) - (a.priority || 0);
+          break;
+        case 'price':
+          comparison = (b.price || 0) - (a.price || 0);
+          break;
+        case 'createdAt':
+          comparison = new Date(b.createdAt) - new Date(a.createdAt);
+          break;
+        default:
+          return 0;
+      }
+      return sortDirection === 'asc' ? -comparison : comparison;
+    });
+  };
+
+  const SortButton = ({ field, icon: Icon, label }) => {
+    const isActive = sortBy === field;
+    return (
+      <Tooltip title={`Sort by ${label}`}>
+        <IconButton
+          onClick={() => handleSort(field)}
+          sx={{
+            backgroundColor: isActive ? 'rgba(76, 175, 80, 0.1)' : 'transparent',
+            borderRadius: '8px',
+            transition: 'all 0.2s ease-in-out',
+            '&:hover': {
+              backgroundColor: isActive ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+            },
+            mr: 1,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+            <Icon
+              sx={{
+                color: isActive ? 'primary.main' : 'text.secondary',
+                mr: 0.5
+              }}
+            />
+            {isActive && (
+              sortDirection === 'asc' ? 
+                <ArrowUpIcon sx={{ color: 'primary.main', fontSize: '1rem' }} /> :
+                <ArrowDownIcon sx={{ color: 'primary.main', fontSize: '1rem' }} />
+            )}
+          </Box>
+        </IconButton>
+      </Tooltip>
+    );
+  };
+
   return (
     <Box>
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
-        <Box>
+      <Box>
+        <Box mb={3}>
           <Typography variant="h4" component="h1" gutterBottom>
             {currentList?.name}
           </Typography>
@@ -112,17 +185,47 @@ function WishlistPage() {
           )}
         </Box>
 
-        <Box>
+        <Box 
+          sx={{ 
+            mb: 3, 
+            display: 'flex', 
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 2,
+            flexWrap: 'wrap'
+          }}
+        >
           {!isSharedList && (
             <Button
               variant="contained"
               startIcon={<AddIcon />}
               onClick={() => setOpenAddDialog(true)}
               color="primary"
+              sx={{ minWidth: 'fit-content' }}
             >
               Add Item
             </Button>
           )}
+
+          <Paper
+            elevation={0}
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              p: 1,
+              backgroundColor: 'rgba(46, 52, 64, 0.3)',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              ml: 'auto', // This pushes the sort controls to the right
+            }}
+          >
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+              Sort by:
+            </Typography>
+            <SortButton field="createdAt" icon={TimeIcon} label="Date Added" />
+            <SortButton field="priority" icon={PriorityIcon} label="Priority" />
+            <SortButton field="price" icon={PriceIcon} label="Price" />
+          </Paper>
         </Box>
       </Box>
 
@@ -134,7 +237,7 @@ function WishlistPage() {
           defaultColumns={4}
           defaultSpacing={2}
         >
-          {items.map((item) => (
+          {getSortedItems().map((item) => (
             <WishlistItem 
               key={item._id}
               item={item} 
