@@ -157,76 +157,123 @@ function WishlistPage() {
 
   return (
     <Box>
-      <Box>
-        <Box mb={3}>
-          <Typography variant="h4" component="h1" gutterBottom>
-            {currentList?.name}
-          </Typography>
-          
-          {currentList?.user && (
-            <Box display="flex" alignItems="center" mb={2}>
-              <Avatar 
-                src={currentList.user.picture} 
-                alt={currentList.user.name}
-                sx={{ mr: 1, width: 32, height: 32 }}
-              >
-                {currentList.user.name?.[0] || '?'}
-              </Avatar>
-              <Typography variant="subtitle1" color="text.secondary">
-                {currentList.user.name || 'Unknown User'}'s List
-              </Typography>
-            </Box>
-          )}
-          
-          {currentList?.description && (
-            <Typography variant="body1" color="text.secondary" gutterBottom>
-              {currentList.description}
-            </Typography>
-          )}
-        </Box>
-
-        <Box 
-          sx={{ 
-            mb: 3, 
-            display: 'flex', 
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 2,
-            flexWrap: 'wrap'
+      <Box 
+        mb={4} 
+        sx={{
+          backgroundColor: 'rgba(46, 52, 64, 0.3)',
+          borderRadius: '12px',
+          padding: '24px',
+          border: '1px solid rgba(255, 255, 255, 0.1)',
+        }}
+      >
+        <Typography 
+          variant="h4" 
+          component="h1" 
+          sx={{
+            fontWeight: 600,
+            color: 'primary.main',
+            mb: 2
           }}
         >
-          {!isSharedList && (
-            <Button
-              variant="contained"
-              startIcon={<AddIcon />}
-              onClick={() => setOpenAddDialog(true)}
-              color="primary"
-              sx={{ minWidth: 'fit-content' }}
+          {currentList?.name}
+        </Typography>
+        
+        {currentList?.user && (
+          <Box 
+            display="flex" 
+            alignItems="center" 
+            mb={currentList?.description ? 3 : 0}
+          >
+            <Avatar 
+              src={currentList.user.picture} 
+              alt={currentList.user.name}
+              sx={{ 
+                mr: 2, 
+                width: 36, 
+                height: 36,
+                border: '2px solid',
+                borderColor: 'primary.main',
+              }}
             >
-              Add Item
-            </Button>
-          )}
-
-          <Paper
-            elevation={0}
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              p: 1,
-              backgroundColor: 'rgba(46, 52, 64, 0.3)',
-              borderRadius: '12px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              ml: 'auto', // This pushes the sort controls to the right
+              {currentList.user.name?.[0] || '?'}
+            </Avatar>
+            <Box>
+              <Typography 
+                variant="subtitle1" 
+                sx={{ 
+                  fontWeight: 500,
+                  color: 'text.primary',
+                }}
+              >
+                {currentList.user.name || 'Unknown User'}
+              </Typography>
+              <Typography 
+                variant="caption" 
+                color="text.secondary"
+              >
+                List Owner
+              </Typography>
+            </Box>
+          </Box>
+        )}
+        
+        {currentList?.description && (
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: 'text.secondary',
+              mt: 2,
+              borderLeft: '2px solid',
+              borderColor: 'primary.main',
+              pl: 2,
             }}
           >
-            <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-              Sort by:
-            </Typography>
-            <SortButton field="createdAt" icon={TimeIcon} label="Date Added" />
-            <SortButton field="priority" icon={PriorityIcon} label="Priority" />
-            <SortButton field="price" icon={PriceIcon} label="Price" />
-          </Paper>
-        </Box>
+            {currentList.description}
+          </Typography>
+        )}
+      </Box>
+
+      <Box 
+        sx={{ 
+          mb: 3, 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 2,
+          flexWrap: 'wrap'
+        }}
+      >
+        {!isSharedList && (
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setOpenAddDialog(true)}
+            color="primary"
+            sx={{ minWidth: 'fit-content' }}
+          >
+            Add Item
+          </Button>
+        )}
+
+        <Paper
+          elevation={0}
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            p: 1,
+            backgroundColor: 'rgba(46, 52, 64, 0.3)',
+            borderRadius: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            ml: 'auto', // This pushes the sort controls to the right
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+            Sort by:
+          </Typography>
+          <SortButton field="createdAt" icon={TimeIcon} label="Date Added" />
+          <SortButton field="priority" icon={PriorityIcon} label="Priority" />
+          <SortButton field="price" icon={PriceIcon} label="Price" />
+        </Paper>
       </Box>
 
       <Box sx={{ width: '100%' }}>
