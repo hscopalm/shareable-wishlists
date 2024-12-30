@@ -10,6 +10,7 @@ import {
   Typography,
   Avatar,
 } from '@mui/material';
+import Masonry from '@mui/lab/Masonry';
 import {
   Add as AddIcon,
   Share as ShareIcon,
@@ -18,11 +19,12 @@ import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
 import { useList } from '../contexts/ListContext';
-import { deleteWishlistItem, fetchListItems, updateWishlistItem } from '../services/api';
-import { useParams } from 'react-router-dom';
+import { deleteWishlistItem, fetchListItems } from '../services/api';
+import { useParams, useNavigate } from 'react-router-dom';
 
 function WishlistPage() {
   const { id: listId } = useParams();
+  const navigate = useNavigate();
   const { currentList, setCurrentList, isSharedList } = useList();
   const [items, setItems] = useState([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
@@ -37,13 +39,22 @@ function WishlistPage() {
         setItems(data.items || []);
       } catch (error) {
         console.error('Error loading list:', error);
+        // Redirect to appropriate page on error
+        navigate(isSharedList ? '/shared' : '/');
       }
     };
 
     if (listId) {
       loadListData();
     }
-  }, [listId, setCurrentList]);
+
+    // Cleanup shared list state
+    return () => {
+      if (isSharedList) {
+        setCurrentList(null, false);
+      }
+    };
+  }, [listId, setCurrentList, navigate, isSharedList]);
 
   const loadItems = async () => {
     try {
@@ -79,21 +90,21 @@ function WishlistPage() {
             {currentList?.name}
           </Typography>
           
-          {isSharedList && currentList?.user && (
+          {currentList?.user && (
             <Box display="flex" alignItems="center" mb={2}>
               <Avatar 
                 src={currentList.user.picture} 
                 alt={currentList.user.name}
                 sx={{ mr: 1, width: 32, height: 32 }}
               >
-                {currentList.user.name[0]}
+                {currentList.user.name?.[0] || '?'}
               </Avatar>
               <Typography variant="subtitle1" color="text.secondary">
-                {currentList.user.name}'s List
+                {currentList.user.name || 'Unknown User'}'s List
               </Typography>
             </Box>
           )}
-
+          
           {currentList?.description && (
             <Typography variant="body1" color="text.secondary" gutterBottom>
               {currentList.description}
@@ -115,18 +126,30 @@ function WishlistPage() {
         </Box>
       </Box>
 
-      <Grid container spacing={2}>
-        {items.map((item) => (
-          <Grid item xs={12} sm={6} md={4} lg={3} key={item._id}>
+      <Box sx={{ width: '100%' }}>
+        <Masonry
+          columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
+          spacing={2}
+          defaultHeight={450}
+          defaultColumns={4}
+          defaultSpacing={2}
+        >
+          {items.map((item) => (
             <WishlistItem 
+              key={item._id}
               item={item} 
               onEdit={!isSharedList ? handleEditItem : undefined}
               onDelete={!isSharedList ? handleDeleteItem : undefined}
               isSharedList={isSharedList}
             />
-          </Grid>
-        ))}
-      </Grid>
+          ))}
+        </Masonry>
+        {items.length === 0 && (
+          <Typography color="text.secondary" align="center">
+            No items in this wishlist
+          </Typography>
+        )}
+      </Box>
 
       {!isSharedList && (
         <SpeedDial

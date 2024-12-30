@@ -39,8 +39,7 @@ router.get('/:id', async (req, res) => {
         { _id: req.params.id, sharedWith: req.user._id }
       ]
     })
-    .populate('user sharedWith', 'name email picture')
-    .populate('items.status.claimedBy', 'name email picture');
+    .populate('user sharedWith', 'name email picture');
 
     if (!wishlist) {
       return res.status(404).json({ message: 'List not found' });

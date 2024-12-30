@@ -7,7 +7,6 @@ import Navbar from './components/Navbar';
 import { theme } from './theme';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SharedListsPage from './pages/SharedListsPage';
-import SharedListPage from './pages/SharedListPage';
 import { ListProvider } from './contexts/ListContext';
 import ListsPage from './pages/ListsPage';
 
@@ -67,11 +66,6 @@ function AppContent() {
               <Route path="/shared" element={
                 <ProtectedRoute>
                   <SharedListsPage />
-                </ProtectedRoute>
-              } />
-              <Route path="/shared/:userId" element={
-                <ProtectedRoute>
-                  <SharedListPage />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<Navigate to="/" />} />

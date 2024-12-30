@@ -45,6 +45,52 @@
       "price": 20,
       "priority": 1,
       "createdAt": "2024-12-20T00:13:22.733Z"
+    },
+    {
+      "title": "Hiking Boots",
+      "description": "Waterproof hiking boots",
+      "price": 150,
+      "priority": 2
+    },
+    {
+      "title": "Camera Lens",
+      "notes": "Wide angle preferred",
+      "priority": 5
+    },
+    {
+      "title": "Camping Tent",
+      "description": "4-person tent",
+      "price": 299,
+      "createdAt": "2024-12-21T00:13:22.733Z"
+    },
+    {
+      "title": "Mountain Bike",
+      "imageUrl": "https://i5.walmartimages.com/seo/Hyper-Bicycles-Men-s-29-Explorer-Dual-Suspension-Mountain-Bike-Red_d885e90f-d5fa-4c8d-b79a-801ed6ae5bb2.38883fa729039ce5aaf1ffd4395718b7.jpeg?odnHeight=2000&odnWidth=2000&odnBg=FFFFFF",
+      "price": 899
+    },
+    {
+      "title": "Climbing Chalk",
+      "description": "Any brand is fine"
+    },
+    {
+      "title": "Backpack",
+      "priority": 3
+    },
+    {
+      "title": "Sleeping Bag",
+      "description": "Rated for 20°F",
+      "price": 129
+    },
+    {
+      "title": "Headlamp",
+      "notes": "Need new batteries too"
+    },
+    {
+      "title": "Water Filter",
+      "price": 45
+    },
+    {
+      "title": "Climbing Shoes"
     }
   ]
 },
@@ -81,6 +127,43 @@
       "price": 50,
       "priority": 5,
       "createdAt": "2024-12-19T15:39:22.966Z"
+    },
+    {
+      "title": "Gaming Chair",
+      "price": 299
+    },
+    {
+      "title": "Mechanical Keyboard",
+      "description": "RGB backlit"
+    },
+    {
+      "title": "Gaming Mouse",
+      "priority": 4
+    },
+    {
+      "title": "Desk Lamp",
+      "notes": "LED preferred"
+    },
+    {
+      "title": "Mousepad",
+      "description": "Extended size"
+    },
+    {
+      "title": "Headphone Stand"
+    },
+    {
+      "title": "USB Hub",
+      "price": 35
+    },
+    {
+      "title": "Monitor Stand",
+      "description": "Dual monitor"
+    },
+    {
+      "title": "Cable Management Kit"
+    },
+    {
+      "title": "Webcam Cover"
     }
   ]
 },
@@ -95,8 +178,8 @@
   ],
   "items": [
     {
-      "title": "Test",
-      "description": "testing",
+      "title": "Dewalt Battery",
+      "description": "As many volts as possible",
       "link": "https://www.homedepot.com/p/DEWALT-20V-MAX-Lithium-Ion-6-0Ah-and-4-0Ah-Battery-and-Charger-Starter-Kit-DCB2460C/313759426#overlay",
       "imageUrl": "",
       "notes": "123",
@@ -107,6 +190,51 @@
         "claimedBy": "6763b6892d9d2bba36992ecd",
         "claimedAt": "2024-12-27T05:56:55.255Z"
       }
+    },
+    {
+      "title": "Coffee Maker",
+      "price": 89
+    },
+    {
+      "title": "Blender",
+      "description": "For smoothies"
+    },
+    {
+      "title": "Air Fryer",
+      "priority": 2
+    },
+    {
+      "title": "Toaster Oven"
+    },
+    {
+      "title": "Food Processor",
+      "price": 149
+    },
+    {
+      "title": "Stand Mixer",
+      "notes": "Any color"
+    },
+    {
+      "title": "Rice Cooker"
+    },
+    {
+      "title": "Knife Set",
+      "description": "Chef's quality"
+    },
+    {
+      "title": "Cutting Board",
+      "price": 45
+    },
+    {
+      "title": "Measuring Cups",
+      "priority": 1
+    },
+    {
+      "title": "Spice Rack",
+      "description": "With spices included"
+    },
+    {
+      "title": "Cooking Thermometer"
     }
   ]
 },
@@ -121,8 +249,8 @@
   ],
   "items": [
     {
-      "title": "Test",
-      "description": "testing",
+      "title": "Dewalt Battery",
+      "description": "As many volts as possible",
       "link": "https://www.homedepot.com/p/DEWALT-20V-MAX-Lithium-Ion-6-0Ah-and-4-0Ah-Battery-and-Charger-Starter-Kit-DCB2460C/313759426#overlay",
       "imageUrl": "",
       "notes": "123",
@@ -133,6 +261,46 @@
         "claimedBy": "6763b7222d9d2bba36992edc",
         "claimedAt": "2024-12-27T05:56:55.255Z"
       }
+    },
+    {
+      "title": "Smart Watch",
+      "price": 299
+    },
+    {
+      "title": "Wireless Earbuds",
+      "description": "Noise cancelling"
+    },
+    {
+      "title": "Phone Case"
+    },
+    {
+      "title": "Power Bank",
+      "priority": 4
+    },
+    {
+      "title": "Bluetooth Speaker",
+      "price": 79
+    },
+    {
+      "title": "Laptop Stand"
+    },
+    {
+      "title": "Screen Protector",
+      "notes": "Anti-glare"
+    },
+    {
+      "title": "Car Phone Mount"
+    },
+    {
+      "title": "Wireless Charger",
+      "description": "Fast charging"
+    },
+    {
+      "title": "USB-C Cable Pack"
+    },
+    {
+      "title": "Camera Tripod",
+      "price": 45
     }
   ]
 }]
