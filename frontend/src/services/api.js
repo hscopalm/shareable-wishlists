@@ -17,8 +17,8 @@ export const createWishlistItem = async (data) => {
   }
 };
 
-export const updateWishlistItem = async (id, itemData) => {
-  const response = await api.put(`/wishlist/${id}`, itemData);
+export const updateWishlistItem = async (itemId, updates) => {
+  const response = await api.put(`/wishlist/${itemId}`, updates);
   return response.data;
 };
 
@@ -84,19 +84,4 @@ export const unshareList = async (listId, userId) => {
 export const getSharedWithMe = async () => {
   const response = await api.get('/share/shared-with-me');
   return response.data;
-};
-
-export const updateLastViewed = async (listId) => {
-  if (!listId) {
-    console.error('No list ID provided to updateLastViewed');
-    return;
-  }
-  
-  try {
-    const response = await api.post(`/share/${listId}/view`);
-    return response.data;
-  } catch (error) {
-    console.error('Error updating view:', error);
-    throw error;
-  }
 };

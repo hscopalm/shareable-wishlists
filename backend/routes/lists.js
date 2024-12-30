@@ -1,14 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const List = require('../models/List');
-const WishlistItem = require('../models/WishlistItem');
-const SharedList = require('../models/SharedList');
+const Wishlist = require('../models/Wishlist');
+const ActivityLog = require('../models/ActivityLog');
 
 // Get all lists for current user
 router.get('/', async (req, res) => {
   try {
-    const lists = await List.find({ user: req.user._id }).sort({ createdAt: -1 });
-    res.json(lists);
+    const wishlists = await Wishlist.find({ user: req.user._id })
+      .sort({ createdAt: -1 });
+    res.json(wishlists);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -17,12 +17,14 @@ router.get('/', async (req, res) => {
 // Create new list
 router.post('/', async (req, res) => {
   try {
-    const list = new List({
-      ...req.body,
-      user: req.user._id
+    const wishlist = new Wishlist({
+      name: req.body.name,
+      description: req.body.description,
+      user: req.user._id,
+      items: []
     });
-    const newList = await list.save();
-    res.status(201).json(newList);
+    const newWishlist = await wishlist.save();
+    res.status(201).json(newWishlist);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -31,64 +33,39 @@ router.post('/', async (req, res) => {
 // Get list and its items
 router.get('/:id', async (req, res) => {
   try {
-    let list;
-    let isShared = false;
-    
-    // Check if user owns the list
-    list = await List.findOne({ 
-      _id: req.params.id,
-      user: req.user._id
-    }).populate('user', 'name email picture');
+    const wishlist = await Wishlist.findOne({
+      $or: [
+        { _id: req.params.id, user: req.user._id },
+        { _id: req.params.id, sharedWith: req.user._id }
+      ]
+    })
+    .populate('user sharedWith', 'name email picture')
+    .populate('items.status.claimedBy', 'name email picture');
 
-    if (list) {
-      // For owned lists, set owner to the user info
-      list = list.toObject(); // Convert to plain object
-      list.owner = {
-        _id: list.user._id,
-        name: list.user.name,
-        email: list.user.email,
-        picture: list.user.picture
-      };
-    } else {
-      // If not found, check if it's shared with the user
-      const sharedList = await SharedList.findOne({
-        list: req.params.id,
-        sharedWith: req.user._id
-      }).populate({
-        path: 'list',
-        populate: {
-          path: 'user',
-          select: 'name email picture'
-        }
-      });
-
-      if (sharedList) {
-        list = sharedList.list.toObject(); // Convert to plain object
-        list.owner = {
-          _id: list.user._id,
-          name: list.user.name,
-          email: list.user.email,
-          picture: list.user.picture
-        };
-        isShared = true;
-      }
-    }
-
-    if (!list) {
+    if (!wishlist) {
       return res.status(404).json({ message: 'List not found' });
     }
 
-    // Get items for the list
-    const items = await WishlistItem.find({ list: req.params.id });
+    const isShared = wishlist.user._id.toString() !== req.user._id.toString();
 
-    // Only log if there's an issue
-    if (!list || !items) {
-      console.log('Warning: Missing data:', { list: !!list, items: !!items });
-    }
+    // Log the view activity
+    await ActivityLog.create({
+      action: 'view_list',
+      causer: req.user._id,
+      wishlist: wishlist._id,
+      page: 'list_detail',
+      details: {
+        listName: wishlist.name,
+        listOwner: wishlist.user._id,
+        isShared: isShared,
+        itemCount: wishlist.items.length,
+        viewerRole: isShared ? 'shared_user' : 'owner'
+      }
+    });
 
     res.json({
-      list,
-      items,
+      list: wishlist,
+      items: wishlist.items,
       isShared
     });
   } catch (error) {
@@ -100,67 +77,38 @@ router.get('/:id', async (req, res) => {
 // Update list
 router.put('/:id', async (req, res) => {
   try {
-    console.log('Update request received:', {
-      listId: req.params.id,
-      userId: req.user._id,
-      updates: req.body
-    });
-
-    const list = await List.findOne({
+    const wishlist = await Wishlist.findOne({
       _id: req.params.id,
       user: req.user._id
     });
 
-    if (!list) {
+    if (!wishlist) {
       return res.status(404).json({ message: 'List not found' });
     }
 
-    // Update list fields
-    list.name = req.body.name;
-    list.description = req.body.description;
+    wishlist.name = req.body.name;
+    wishlist.description = req.body.description;
 
-    const updatedList = await list.save();
-    console.log('List updated:', updatedList);
-    
-    res.json(updatedList);
+    const updatedWishlist = await wishlist.save();
+    res.json(updatedWishlist);
   } catch (error) {
-    console.error('Error updating list:', error);
     res.status(400).json({ message: error.message });
   }
 });
 
-// Delete list (only if not default)
-router.delete('/:listId', async (req, res) => {
+// Delete list
+router.delete('/:id', async (req, res) => {
   try {
-    const list = await List.findOne({ 
-      _id: req.params.listId, 
-      user: req.user._id 
+    const wishlist = await Wishlist.findOneAndDelete({
+      _id: req.params.id,
+      user: req.user._id
     });
-    
-    if (!list) {
+
+    if (!wishlist) {
       return res.status(404).json({ message: 'List not found' });
     }
 
-    if (list.isDefault) {
-      return res.status(400).json({ 
-        message: 'Cannot delete default list' 
-      });
-    }
-
-    // Get default list for moving items
-    const defaultList = await List.findOne({ 
-      user: req.user._id, 
-      isDefault: true 
-    });
-
-    // Move items to default list
-    await WishlistItem.updateMany(
-      { list: list._id },
-      { list: defaultList._id }
-    );
-
-    await list.deleteOne();
-    res.json({ message: 'List deleted, items moved to default list' });
+    res.json({ message: 'List deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

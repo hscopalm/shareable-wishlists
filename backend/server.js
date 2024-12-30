@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: '../.env' });
 
 // Add this after dotenv config
 console.log('Environment variables loaded:', {
@@ -13,7 +13,6 @@ const cors = require('cors');
 const session = require('express-session');
 const passport = require('./config/passport');
 const http = require('http');
-const SharedList = require('./models/SharedList');
 
 const app = express();
 const server = http.createServer(app);
@@ -53,13 +52,6 @@ mongoose.connection.on('connected', async () => {
     // List all collections
     const collections = await mongoose.connection.db.listCollections().toArray();
     console.log('Available collections:', collections.map(c => c.name));
-    
-    // Verify SharedList model
-    console.log('SharedList model:', mongoose.models.SharedList);
-    
-    // Create test indices
-    await SharedList.createIndexes();
-    console.log('SharedList indices created');
   } catch (error) {
     console.error('Error during startup checks:', error);
   }

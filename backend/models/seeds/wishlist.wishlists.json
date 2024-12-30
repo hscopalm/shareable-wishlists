@@ -1,0 +1,138 @@
+[{
+  "name": "Birthday List",
+  "description": "For friends",
+  "user": "6763b6892d9d2bba36992ecd",
+  "createdAt": "2024-12-19T06:00:41.698Z",
+  "sharedWith": [
+    "6763b7222d9d2bba36992edc",
+    "676a0ed1f6c759cb6987c866"
+  ],
+  "items": [
+    {
+      "title": "Rope",
+      "description": "Twine",
+      "link": "https://www.homedepot.com/p/T-W-Evans-Cordage-3-8-in-x-300-ft-Manila-Rope-Reel-25-033/205326812?source=shoppingads&locale=en-US&gQT=1",
+      "imageUrl": "https://encrypted-tbn3.gstatic.com/shopping?q=tbn:ANd9GcQgagHqU5NscS3sGXchotG0rivL1Or46Pd2NmCqtr80DGwe0XPNGu7mHUZqMAuoaVol79HT9fapG-mwKqO4NO9LDy_UTpBiydh-0fxT4vM5QkmrsyBgzef9",
+      "notes": "Pink please",
+      "price": 100,
+      "priority": 3,
+      "createdAt": "2024-12-19T06:02:31.709Z",
+      "status": {
+        "claimedBy": "6763b7222d9d2bba36992edc",
+        "claimedAt": "2024-12-19T06:02:31.709Z"
+      }
+    },
+    {
+      "title": "Carabiner",
+      "description": "Black rocklock",
+      "link": "https://www.amazon.com/Black-Diamond-RockLock-Screwgate-Carabiner/dp/B081B7WYFM?source=ps-sl-shoppingads-lpcontext&ref_=fplfs&psc=1&smid=A1TEXT82G6IFT0&gQT=1",
+      "imageUrl": "https://m.media-amazon.com/images/I/61vowr0xpIS._AC_SX679_.jpg",
+      "notes": "Black",
+      "price": 15,
+      "priority": 4,
+      "createdAt": "2024-12-20T00:13:22.733Z",
+      "status": {
+        "claimedBy": "6763b7222d9d2bba36992edc",
+        "claimedAt": "2024-12-20T00:13:22.733Z"
+      }
+    },
+    {
+      "title": "Booze",
+      "description": "The good stuff",
+      "link": "https://en.wikipedia.org/wiki/Vodka",
+      "imageUrl": "https://upload.wikimedia.org/wikipedia/commons/d/de/Smirnoff_Red_Label_8213.jpg",
+      "notes": "Smirnoff",
+      "price": 20,
+      "priority": 1,
+      "createdAt": "2024-12-20T00:13:22.733Z"
+    }
+  ]
+},
+{
+  "name": "Birthday list",
+  "description": "Please buy me a gift!",
+  "user": "6763b7222d9d2bba36992edc",
+  "createdAt": "2024-12-19T06:03:14.096Z",
+  "sharedWith": [
+    "6763b6892d9d2bba36992ecd",
+    "676a0ed1f6c759cb6987c866"
+  ],
+  "items": [
+    {
+      "title": "Yeti cup",
+      "description": "Idk",
+      "link": "https://yeti-web.imgix.net/387663634fc6cef4/W-site_studio_drinkware_Rambler_42oz_Straw_Mug_Desert_Bloom_Front_0459_Primary_A_2400x2400.png?bg=0fff&auto=format&w=500&q=68&h=500&fit=fill&hattr=500px&wattr=500px&eagerLoad=true",
+      "imageUrl": "https://yeti-web.imgix.net/387663634fc6cef4/W-site_studio_drinkware_Rambler_42oz_Straw_Mug_Desert_Bloom_Front_0459_Primary_A_2400x2400.png?bg=0fff&auto=format&w=500&q=68&h=500&fit=fill&hattr=500px&wattr=500px&eagerLoad=true",
+      "notes": "Pink",
+      "price": 20,
+      "priority": 1,
+      "createdAt": "2024-12-20T00:13:22.733Z",
+      "status": {
+        "claimedBy": "6763b6892d9d2bba36992ecd",
+        "claimedAt": "2024-12-22T00:12:22.733Z"
+      }
+    },
+    {
+      "title": "Santa",
+      "description": "Big white beard",
+      "link": "https://www.homedepot.com/p/Home-Accents-Holiday-8-ft-Holiday-Traditions-Giant-Sized-LED-Towering-Santa-Holiday-Yard-Decoration-24SV24669/329367498",
+      "imageUrl": "https://images.thdstatic.com/productImages/16f58f63-e5b7-4360-bfd0-3c495034c04e/svn/home-accents-holiday-christmas-yard-decorations-24sv24669-64_145.jpg",
+      "notes": "Get the purple color please",
+      "price": 50,
+      "priority": 5,
+      "createdAt": "2024-12-19T15:39:22.966Z"
+    }
+  ]
+},
+{
+  "name": "My Wishlist",
+  "description": "Default wishlist",
+  "user": "676a0ed1f6c759cb6987c866",
+  "createdAt": "2024-12-24T01:30:57.092Z",
+  "sharedWith": [
+    "6763b6892d9d2bba36992ecd",
+    "6763b7222d9d2bba36992edc"
+  ],
+  "items": [
+    {
+      "title": "Test",
+      "description": "testing",
+      "link": "https://www.homedepot.com/p/DEWALT-20V-MAX-Lithium-Ion-6-0Ah-and-4-0Ah-Battery-and-Charger-Starter-Kit-DCB2460C/313759426#overlay",
+      "imageUrl": "",
+      "notes": "123",
+      "price": 111,
+      "priority": 3,
+      "createdAt": "2024-12-27T05:56:55.255Z",
+      "status": {
+        "claimedBy": "6763b6892d9d2bba36992ecd",
+        "claimedAt": "2024-12-27T05:56:55.255Z"
+      }
+    }
+  ]
+},
+{
+  "name": "Christmas List",
+  "description": "Help me out, I'm broke!",
+  "user": "6763b6892d9d2bba36992ecd",
+  "createdAt": "2024-12-27T05:50:30.526Z",
+  "sharedWith": [
+    "6763b7222d9d2bba36992edc",
+    "676a0ed1f6c759cb6987c866"
+  ],
+  "items": [
+    {
+      "title": "Test",
+      "description": "testing",
+      "link": "https://www.homedepot.com/p/DEWALT-20V-MAX-Lithium-Ion-6-0Ah-and-4-0Ah-Battery-and-Charger-Starter-Kit-DCB2460C/313759426#overlay",
+      "imageUrl": "",
+      "notes": "123",
+      "price": 111,
+      "priority": 3,
+      "createdAt": "2024-12-27T05:56:55.255Z",
+      "status": {
+        "claimedBy": "6763b7222d9d2bba36992edc",
+        "claimedAt": "2024-12-27T05:56:55.255Z"
+      }
+    }
+  ]
+}]

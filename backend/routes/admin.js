@@ -1,10 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const List = require('../models/List');
-const WishlistItem = require('../models/WishlistItem');
-const SharedList = require('../models/SharedList');
-const ListView = require('../models/ListView');
+const Wishlist = require('../models/Wishlist');
 
 // Delete user and all associated data
 router.delete('/users/:userId', async (req, res) => {

@@ -74,50 +74,60 @@ function SharedListsPage() {
         ) : (
           sharedLists.map((list) => (
             <Grid item xs={12} sm={6} md={4} key={list._id}>
-              <Card>
-                <CardActionArea onClick={() => handleListClick(list)}>
-                  <CardContent>
-                    <Box display="flex" alignItems="center" mb={2}>
-                      <Avatar 
-                        src={list.owner.picture} 
-                        alt={list.owner.name}
-                        sx={{ mr: 2 }}
-                      >
-                        {list.owner.name[0]}
-                      </Avatar>
-                      <Box>
-                        <Typography variant="h6" component="div">
-                          {list.name}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {list.owner.name}
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {list.description && (
-                      <Typography 
-                        variant="body2" 
-                        color="text.secondary"
-                        sx={{ 
-                          mt: 1,
-                          mb: 2,
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis'
-                        }}
-                      >
-                        {list.description}
+              <Card 
+                onClick={() => handleListClick(list)}
+                sx={{
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  transition: 'transform 0.2s ease-in-out',
+                  '&:hover': {
+                    transform: 'translateY(-4px)'
+                  }
+                }}
+              >
+                <CardContent>
+                  <Box display="flex" alignItems="center" mb={2}>
+                    <Avatar 
+                      src={list.owner.picture} 
+                      alt={list.owner.name}
+                      sx={{ mr: 2 }}
+                    >
+                      {list.owner.name[0]}
+                    </Avatar>
+                    <Box>
+                      <Typography variant="h6" component="div">
+                        {list.name}
                       </Typography>
-                    )}
+                      <Typography variant="body2" color="text.secondary">
+                        {list.owner.name}
+                      </Typography>
+                    </Box>
+                  </Box>
 
-                    <Typography variant="caption" color="text.secondary">
-                      Shared {formatDistanceToNow(new Date(list.sharedAt))} ago
+                  {list.description && (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        mt: 1,
+                        mb: 2,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}
+                    >
+                      {list.description}
                     </Typography>
-                  </CardContent>
-                </CardActionArea>
+                  )}
+
+                  <Typography variant="caption" color="text.secondary">
+                    Shared {formatDistanceToNow(new Date(list.sharedAt))} ago
+                  </Typography>
+                </CardContent>
               </Card>
             </Grid>
           ))

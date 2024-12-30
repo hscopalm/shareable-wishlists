@@ -1,64 +1,29 @@
 const express = require('express');
 const router = express.Router();
-const WishlistItem = require('../models/WishlistItem');
-const List = require('../models/List');
+const Wishlist = require('../models/Wishlist');
 
-// Get all items (from all lists)
-router.get('/', async (req, res) => {
-  try {
-    // Get all lists owned by user
-    const lists = await List.find({ user: req.user._id });
-    const listIds = lists.map(list => list._id);
-    
-    // Get shared items
-    const sharedItems = await WishlistItem.find({
-      sharedWith: req.user._id
-    }).populate('list', 'name');
-
-    // Get items from user's lists
-    const ownedItems = await WishlistItem.find({ 
-      list: { $in: listIds } 
-    }).populate('list', 'name');
-    
-    // Combine and sort all items
-    const items = [...ownedItems, ...sharedItems].sort((a, b) => 
-      b.createdAt - a.createdAt
-    );
-    
-    res.json(items);
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Create item (in specified list)
+// Create item
 router.post('/', async (req, res) => {
   try {
     const { list: listId, ...itemData } = req.body;
-    console.log('Creating item:', { listId, itemData, user: req.user._id });
     
-    // Verify list exists and user has access
-    const list = await List.findOne({
+    const wishlist = await Wishlist.findOne({
       _id: listId,
       user: req.user._id
     });
 
-    if (!list) {
-      console.log('List not found:', { listId, userId: req.user._id });
+    if (!wishlist) {
       return res.status(404).json({ message: 'List not found' });
     }
 
-    const wishlistItem = new WishlistItem({
+    wishlist.items.push({
       ...itemData,
-      list: listId,
-      user: req.user._id
+      createdAt: new Date()
     });
 
-    const savedItem = await wishlistItem.save();
-    console.log('Item saved:', savedItem);
-    res.status(201).json(savedItem);
+    await wishlist.save();
+    res.status(201).json(wishlist.items[wishlist.items.length - 1]);
   } catch (error) {
-    console.error('Create item error:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -66,36 +31,33 @@ router.post('/', async (req, res) => {
 // Update item
 router.put('/:id', async (req, res) => {
   try {
-    // Get user's lists
-    const lists = await List.find({ user: req.user._id });
-    const listIds = lists.map(list => list._id);
-
-    const item = await WishlistItem.findOne({ 
-      _id: req.params.id,
-      list: { $in: listIds }
+    const wishlist = await Wishlist.findOne({
+      'items._id': req.params.id,
+      user: req.user._id
     });
 
-    if (!item) {
+    if (!wishlist) {
       return res.status(404).json({ message: 'Item not found' });
     }
-    
-    // If changing lists, verify new list belongs to user
-    if (req.body.list) {
-      const newList = await List.findOne({ 
-        _id: req.body.list, 
-        user: req.user._id 
-      });
-      
-      if (!newList) {
-        return res.status(404).json({ message: 'Target list not found' });
-      }
+
+    const itemIndex = wishlist.items.findIndex(
+      item => item._id.toString() === req.params.id
+    );
+
+    if (itemIndex === -1) {
+      return res.status(404).json({ message: 'Item not found' });
     }
 
-    Object.assign(item, req.body);
-    const updatedItem = await item.save();
-    await updatedItem.populate('list', 'name');
-    res.json(updatedItem);
+    // Update the item
+    wishlist.items[itemIndex] = {
+      ...wishlist.items[itemIndex].toObject(),
+      ...req.body
+    };
+
+    await wishlist.save();
+    res.json(wishlist.items[itemIndex]);
   } catch (error) {
+    console.error('Error updating item:', error);
     res.status(400).json({ message: error.message });
   }
 });
@@ -103,20 +65,20 @@ router.put('/:id', async (req, res) => {
 // Delete item
 router.delete('/:id', async (req, res) => {
   try {
-    // Get user's lists
-    const lists = await List.find({ user: req.user._id });
-    const listIds = lists.map(list => list._id);
-
-    const item = await WishlistItem.findOne({ 
-      _id: req.params.id,
-      list: { $in: listIds }
+    const wishlist = await Wishlist.findOne({
+      'items._id': req.params.id,
+      user: req.user._id
     });
 
-    if (!item) {
+    if (!wishlist) {
       return res.status(404).json({ message: 'Item not found' });
     }
-    
-    await item.deleteOne();
+
+    wishlist.items = wishlist.items.filter(
+      item => item._id.toString() !== req.params.id
+    );
+
+    await wishlist.save();
     res.json({ message: 'Item deleted' });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -18,7 +18,7 @@ import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
 import { useList } from '../contexts/ListContext';
-import { deleteWishlistItem, fetchListItems } from '../services/api';
+import { deleteWishlistItem, fetchListItems, updateWishlistItem } from '../services/api';
 import { useParams } from 'react-router-dom';
 
 function WishlistPage() {
@@ -73,64 +73,41 @@ function WishlistPage() {
 
   return (
     <Box>
-      <Box mb={3}>
-        <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-          <Box>
-            <Typography variant="h5" gutterBottom>
-              {currentList?.name}
-            </Typography>
-            
-            {currentList?.description && (
-              <Typography 
-                variant="body2" 
-                color="text.secondary"
-                sx={{ mb: 2 }}
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={3}>
+        <Box>
+          <Typography variant="h4" component="h1" gutterBottom>
+            {currentList?.name}
+          </Typography>
+          
+          {isSharedList && currentList?.user && (
+            <Box display="flex" alignItems="center" mb={2}>
+              <Avatar 
+                src={currentList.user.picture} 
+                alt={currentList.user.name}
+                sx={{ mr: 1, width: 32, height: 32 }}
               >
-                {currentList.description}
+                {currentList.user.name[0]}
+              </Avatar>
+              <Typography variant="subtitle1" color="text.secondary">
+                {currentList.user.name}'s List
               </Typography>
-            )}
+            </Box>
+          )}
 
-            {isSharedList && currentList?.owner && (
-              <Box 
-                display="flex" 
-                alignItems="center" 
-                sx={{ 
-                  mt: 1,
-                  p: 1.5,
-                  borderRadius: 1,
-                  backgroundColor: 'rgba(0, 0, 0, 0.02)',
-                }}
-              >
-                <Avatar
-                  src={currentList.owner.picture}
-                  alt={currentList.owner.name}
-                  sx={{ 
-                    width: 40, 
-                    height: 40,
-                    mr: 2,
-                    border: '2px solid white',
-                    boxShadow: 1
-                  }}
-                >
-                  {currentList.owner.name[0]}
-                </Avatar>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    List Owner
-                  </Typography>
-                  <Typography variant="body1">
-                    {currentList.owner.name}
-                  </Typography>
-                </Box>
-              </Box>
-            )}
-          </Box>
+          {currentList?.description && (
+            <Typography variant="body1" color="text.secondary" gutterBottom>
+              {currentList.description}
+            </Typography>
+          )}
+        </Box>
 
+        <Box>
           {!isSharedList && (
             <Button
-              startIcon={<AddIcon />}
               variant="contained"
+              startIcon={<AddIcon />}
               onClick={() => setOpenAddDialog(true)}
+              color="primary"
             >
               Add Item
             </Button>
@@ -145,6 +122,7 @@ function WishlistPage() {
               item={item} 
               onEdit={!isSharedList ? handleEditItem : undefined}
               onDelete={!isSharedList ? handleDeleteItem : undefined}
+              isSharedList={isSharedList}
             />
           </Grid>
         ))}

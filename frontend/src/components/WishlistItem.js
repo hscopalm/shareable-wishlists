@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -6,8 +6,6 @@ import {
   Typography,
   IconButton,
   Box,
-  Snackbar,
-  Alert,
   Tooltip,
   Chip,
 } from '@mui/material';
@@ -16,32 +14,8 @@ import {
   Delete as DeleteIcon,
   Link as LinkIcon,
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { useAuth } from '../contexts/AuthContext';
-import { useList } from '../contexts/ListContext';
-import { updateLastViewed } from '../services/api';
 
-function WishlistItem({ item, onEdit, onDelete }) {
-  const { user } = useAuth();
-  const { isSharedList } = useList();
-  const [showSnackbar, setShowSnackbar] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [viewUpdated, setViewUpdated] = useState(false);
-
-  useEffect(() => {
-    const updateView = async () => {
-      if (isSharedList) {
-        try {
-          await updateLastViewed(item.list);
-        } catch (error) {
-          console.error('Error updating view:', error);
-        }
-      }
-    };
-
-    updateView();
-  }, [isSharedList, item.list]);
-
+function WishlistItem({ item, onEdit, onDelete, isSharedList }) {
   const handleCardClick = () => {
     if (isSharedList) {
       // For shared lists, open link or image in new tab
@@ -83,14 +57,17 @@ function WishlistItem({ item, onEdit, onDelete }) {
         cursor: isSharedList ? 
           (item.link || item.imageUrl ? 'pointer' : 'default') : 
           'pointer',
+        transition: 'opacity 0.2s ease-in-out',
       }}
       onClick={handleCardClick}
     >
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-          <Typography variant="h6" component="h2">
-            {item.title}
-          </Typography>
+          <Box>
+            <Typography variant="h6" component="h2">
+              {item.title}
+            </Typography>
+          </Box>
           {item.link && (
             <Tooltip title="View Item">
               <IconButton
@@ -169,11 +146,11 @@ function WishlistItem({ item, onEdit, onDelete }) {
           </Box>
         )}
 
-        {/* Action buttons - only show for list owners */}
+        {/* Action buttons */}
         {!isSharedList && (onEdit || onDelete) && (
           <Box
             className="item-actions"
-            onClick={(e) => e.stopPropagation()} // Prevent card click when clicking buttons
+            onClick={(e) => e.stopPropagation()}
             sx={{
               position: 'absolute',
               bottom: 8,
@@ -226,14 +203,6 @@ function WishlistItem({ item, onEdit, onDelete }) {
           </Box>
         )}
       </CardContent>
-
-      <Snackbar
-        open={showSnackbar}
-        autoHideDuration={3000}
-        onClose={() => setShowSnackbar(false)}
-      >
-        <Alert severity="success">{snackbarMessage}</Alert>
-      </Snackbar>
     </Card>
   );
 }

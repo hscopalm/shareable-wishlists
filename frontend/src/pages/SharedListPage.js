@@ -11,13 +11,11 @@ import {
   Button,
 } from '@mui/material';
 import {
-  ArrowBack as ArrowBackIcon,
   AccessTime as TimeIcon,
   PriorityHigh as PriorityIcon,
   AttachMoney as PriceIcon,
 } from '@mui/icons-material';
 import WishlistItem from '../components/WishlistItem';
-import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import { useList } from '../contexts/ListContext';
 
@@ -38,9 +36,10 @@ function SharedListPage() {
 
   const loadSharedList = useCallback(async () => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/share/shared-list/${userId}`, {
-        withCredentials: true
+      const response = await fetch(`/api/share/shared-list/${userId}`, {
+        credentials: 'include'
       });
+      const data = await response.json();
       setItems(response.data.items);
       setOwner(response.data.owner);
     } catch (error) {
@@ -111,17 +110,6 @@ function SharedListPage() {
   return (
     <>
       <Box sx={{ mb: 3 }}>
-        <Grid container spacing={2} alignItems="center">
-          <Grid item>
-            <Button
-              startIcon={<ArrowBackIcon />}
-              onClick={() => navigate('/shared')}
-              sx={{ color: 'text.secondary' }}
-            >
-              Back to Shared Lists
-            </Button>
-          </Grid>
-        </Grid>
         {owner && (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 2, mb: 3 }}>
             <Avatar
@@ -165,7 +153,7 @@ function SharedListPage() {
           <Grid item xs={12} sm={6} md={4} lg={3} key={item._id}>
             <WishlistItem 
               item={item}
-              onUpdate={loadSharedList}
+              isSharedList={true}
             />
           </Grid>
         ))}

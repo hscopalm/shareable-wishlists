@@ -1,8 +1,6 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
-const PendingShare = require('../models/PendingShare');
-const SharedList = require('../models/SharedList');
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -27,38 +25,35 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: 'http://localhost:5000/api/auth/google/callback',
-      scope: ['profile', 'email']
+      callbackURL: '/api/auth/google/callback'
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await User.findOne({ googleId: profile.id });
-        const email = profile.emails[0].value.toLowerCase();
-        
-        if (!user) {
+        // Check if user exists by email
+        let user = await User.findOne({ 
+          email: profile.emails[0].value.toLowerCase() 
+        });
+
+        if (user) {
+          // If this was a pending user, update their info
+          if (user.isPending) {
+            user.googleId = profile.id;
+            user.name = profile.displayName;
+            user.picture = profile.photos[0].value;
+            user.isPending = false;
+            await user.save();
+          }
+        } else {
           // Create new user
           user = await User.create({
             googleId: profile.id,
-            email: email,
+            email: profile.emails[0].value.toLowerCase(),
             name: profile.displayName,
-            picture: profile.photos[0].value
+            picture: profile.photos[0].value,
+            isPending: false
           });
-
-          // Check for pending shares
-          const pendingShares = await PendingShare.find({ email });
-          
-          // Convert pending shares to actual shares
-          if (pendingShares.length > 0) {
-            await Promise.all(pendingShares.map(async (pending) => {
-              await SharedList.create({
-                owner: pending.owner,
-                sharedWith: user._id
-              });
-              await pending.deleteOne();
-            }));
-          }
         }
-        
+
         return done(null, user);
       } catch (error) {
         return done(error, null);
