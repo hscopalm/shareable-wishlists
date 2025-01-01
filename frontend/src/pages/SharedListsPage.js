@@ -92,9 +92,12 @@ function SharedListsPage() {
                     <Avatar 
                       src={list.owner.picture} 
                       alt={list.owner.name}
+                      imgProps={{ 
+                        referrerPolicy: "no-referrer"
+                      }}
                       sx={{ mr: 2 }}
                     >
-                      {list.owner.name[0]}
+                      {list.owner.name?.[0] || '?'}
                     </Avatar>
                     <Box>
                       <Typography variant="h6" component="div">
