@@ -173,4 +173,46 @@ router.get('/share/shared-with-me', async (req, res) => {
   }
 });
 
+// Claim/unclaim an item in a shared list
+router.post('/share/claim/:listId/:itemId', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({
+      _id: req.params.listId,
+      sharedWith: req.user._id
+    });
+
+    if (!wishlist) {
+      return res.status(404).json({ message: 'List not found or not shared with you' });
+    }
+
+    const item = wishlist.items.id(req.params.itemId);
+    if (!item) {
+      return res.status(404).json({ message: 'Item not found' });
+    }
+
+    // If item is already claimed by someone else, prevent claiming
+    if (item.status?.claimedBy && item.status.claimedBy.toString() !== req.user._id.toString()) {
+      return res.status(400).json({ message: 'Item already claimed by someone else' });
+    }
+
+    // Toggle claim status
+    if (item.status?.claimedBy?.toString() === req.user._id.toString()) {
+      // Unclaim
+      item.status = {};
+    } else {
+      // Claim
+      item.status = {
+        claimedBy: req.user._id,
+        claimedAt: new Date()
+      };
+    }
+
+    await wishlist.save();
+    res.json(item);
+  } catch (error) {
+    console.error('Error claiming/unclaiming item:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router; 

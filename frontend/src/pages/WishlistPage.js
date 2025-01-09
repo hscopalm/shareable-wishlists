@@ -27,7 +27,7 @@ import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
 import { useList } from '../contexts/ListContext';
-import { deleteWishlistItem, fetchListItems } from '../services/api';
+import { deleteWishlistItem, fetchListItems, claimItem } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 
 function WishlistPage() {
@@ -153,6 +153,21 @@ function WishlistPage() {
         </IconButton>
       </Tooltip>
     );
+  };
+
+  const handleClaimItem = async (item) => {
+    try {
+      const updatedItem = await claimItem(listId, item._id);
+      // Update the items list with the new claim status
+      setItems(prevItems => 
+        prevItems.map(i => 
+          i._id === item._id ? { ...i, status: updatedItem.status } : i
+        )
+      );
+    } catch (error) {
+      console.error('Error claiming item:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
   return (
@@ -290,6 +305,7 @@ function WishlistPage() {
               item={item} 
               onEdit={!isSharedList ? handleEditItem : undefined}
               onDelete={!isSharedList ? handleDeleteItem : undefined}
+              onClaim={isSharedList ? handleClaimItem : undefined}
               isSharedList={isSharedList}
             />
           ))}

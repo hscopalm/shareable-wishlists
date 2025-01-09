@@ -85,3 +85,8 @@ export const getSharedWithMe = async () => {
   const response = await api.get('/share/shared-with-me');
   return response.data;
 };
+
+export const claimItem = async (listId, itemId) => {
+  const response = await api.post(`/share/claim/${listId}/${itemId}`, {});
+  return response.data;
+};

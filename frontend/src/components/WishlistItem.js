@@ -8,14 +8,23 @@ import {
   Box,
   Tooltip,
   Chip,
+  Button,
+  Avatar,
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Link as LinkIcon,
+  ShoppingCart as ClaimIcon,
 } from '@mui/icons-material';
+import { useAuth } from '../contexts/AuthContext';
 
-function WishlistItem({ item, onEdit, onDelete, isSharedList }) {
+function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
+  const { user } = useAuth();
+  const isClaimedByMe = item.status?.claimedBy?._id === user?._id;
+  const isClaimedByOther = item.status?.claimedBy && !isClaimedByMe;
+  const claimer = item.status?.claimedBy;
+
   const handleCardClick = () => {
     if (isSharedList) {
       // For shared lists, open link or image in new tab
@@ -58,13 +67,25 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList }) {
           (item.link || item.imageUrl ? 'pointer' : 'default') : 
           'pointer',
         transition: 'opacity 0.2s ease-in-out',
+        ...((isSharedList && isClaimedByOther) || isClaimedByMe ? {
+          opacity: 0.6,
+          filter: 'grayscale(1)',
+        } : {})
       }}
       onClick={handleCardClick}
     >
       <CardContent>
         <Box display="flex" justifyContent="space-between" alignItems="flex-start">
           <Box>
-            <Typography variant="h6" component="h2">
+            <Typography 
+              variant="h6" 
+              component="h2"
+              sx={{
+                ...(isSharedList && isClaimedByOther && {
+                  color: 'text.secondary',
+                })
+              }}
+            >
               {item.title}
             </Typography>
           </Box>
@@ -92,7 +113,10 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList }) {
         </Box>
 
         {item.description && (
-          <Typography color="textSecondary" gutterBottom>
+          <Typography 
+            color="textSecondary" 
+            gutterBottom
+          >
             {item.description}
           </Typography>
         )}
@@ -103,11 +127,18 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList }) {
             height="140"
             image={item.imageUrl}
             alt={item.title}
-            sx={{ objectFit: 'contain', mt: 1, mb: 1 }}
+            sx={{ 
+              objectFit: 'contain', 
+              mt: 1, 
+              mb: 1,
+              ...((isSharedList && isClaimedByOther) || isClaimedByMe ? {
+                filter: 'grayscale(1) opacity(0.6)',
+              } : {})
+            }}
           />
         )}
 
-        <Box mt={2} display="flex" flexWrap="wrap" gap={1}>
+        <Box mt={2} display="flex" flexWrap="wrap" gap={1} alignItems="center">
           {item.price && (
             <Chip
               label={`$${item.price}`}
@@ -123,6 +154,27 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList }) {
               color={getPriorityInfo(item.priority).color}
               variant="outlined"
             />
+          )}
+          {isSharedList && claimer && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+              <Typography variant="body2" color="text.secondary">
+                Claimed by
+              </Typography>
+              <Tooltip title={claimer.name || 'Unknown User'}>
+                <Avatar
+                  src={claimer.picture}
+                  alt={claimer.name}
+                  sx={{ 
+                    width: 24, 
+                    height: 24,
+                    border: '2px solid',
+                    borderColor: isClaimedByMe ? 'success.main' : 'grey.500',
+                  }}
+                >
+                  {claimer.name?.[0] || '?'}
+                </Avatar>
+              </Tooltip>
+            </Box>
           )}
         </Box>
 
@@ -200,6 +252,38 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList }) {
                 </IconButton>
               </Tooltip>
             )}
+          </Box>
+        )}
+
+        {/* Claim button for shared lists */}
+        {isSharedList && onClaim && !isClaimedByOther && (
+          <Box
+            sx={{
+              position: 'absolute',
+              bottom: 8,
+              right: 8,
+              opacity: 0,
+              transition: 'opacity 0.2s',
+              '&:hover': {
+                opacity: 1,
+              },
+              '.MuiCard-root:hover &': {
+                opacity: 1,
+              },
+            }}
+          >
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={<ClaimIcon />}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClaim(item);
+              }}
+              color={isClaimedByMe ? "error" : "primary"}
+            >
+              {isClaimedByMe ? "Unclaim" : "Claim"}
+            </Button>
           </Box>
         )}
       </CardContent>
