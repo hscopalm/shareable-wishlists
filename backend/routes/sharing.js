@@ -208,7 +208,14 @@ router.post('/share/claim/:listId/:itemId', async (req, res) => {
     }
 
     await wishlist.save();
-    res.json(item);
+    
+    // Fetch the updated wishlist with populated claimer info
+    const updatedWishlist = await Wishlist.findById(wishlist._id)
+      .populate('items.status.claimedBy', 'name email picture');
+    
+    // Find and return the updated item
+    const updatedItem = updatedWishlist.items.id(item._id);
+    res.json(updatedItem);
   } catch (error) {
     console.error('Error claiming/unclaiming item:', error);
     res.status(500).json({ message: error.message });
