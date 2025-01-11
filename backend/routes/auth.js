@@ -3,25 +3,28 @@ const passport = require('passport');
 const router = express.Router();
 
 router.get('/google', (req, res, next) => {
-  console.log('Attempting Google authentication');
-  passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next);
+  passport.authenticate('google', { 
+    scope: ['profile', 'email'],
+    session: true
+  })(req, res, next);
 });
 
 router.get('/google/callback',
   passport.authenticate('google', { 
     failureRedirect: process.env.NODE_ENV === 'production' 
       ? '/' 
-      : 'http://localhost:3000/'
+      : 'http://localhost/',
+    session: true
   }),
   (req, res) => {
     res.redirect(process.env.NODE_ENV === 'production' 
       ? '/' 
-      : 'http://localhost:3000/');
+      : 'http://localhost/');
   }
 );
 
 router.get('/current-user', (req, res) => {
-  if (req.user) {
+  if (req.isAuthenticated() && req.user) {
     res.json(req.user);
   } else {
     res.status(401).json({ message: 'Not authenticated' });
@@ -33,7 +36,13 @@ router.get('/logout', (req, res) => {
     if (err) {
       return res.status(500).json({ message: 'Error logging out' });
     }
-    res.json({ message: 'Logged out successfully' });
+    req.session.destroy((err) => {
+      if (err) {
+        console.error('Session destruction error:', err);
+      }
+      res.clearCookie('connect.sid');
+      res.json({ message: 'Logged out successfully' });
+    });
   });
 });
 

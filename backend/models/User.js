@@ -4,7 +4,7 @@ const userSchema = new mongoose.Schema({
   _id: {
     type: mongoose.Schema.Types.ObjectId,
     required: true,
-    default: mongoose.Types.ObjectId
+    default: () => new mongoose.Types.ObjectId()
   },
   googleId: {
     type: String,

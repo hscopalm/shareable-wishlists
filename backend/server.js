@@ -17,22 +17,37 @@ const http = require('http');
 const app = express();
 const server = http.createServer(app);
 
+// Debug middleware to log session and auth status
+app.use((req, res, next) => {
+  console.log('Session ID:', req.sessionID);
+  console.log('Is Authenticated:', req.isAuthenticated?.());
+  next();
+});
+
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'your_production_url' : 'http://localhost:3000',
-  credentials: true
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL || 'http://localhost' : 'http://localhost',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 app.use(express.json());
 
 // Session configuration - this must come BEFORE passport middleware
 app.use(session({
   secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
+  resave: true,
+  saveUninitialized: true,
   cookie: {
-    secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000 // 24 hours
-  }
+    // Only use secure cookies when using HTTPS
+    secure: false, // Set to true in production when using HTTPS
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    httpOnly: true,
+    sameSite: 'lax',
+    domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : 'localhost'
+  },
+  proxy: true // Trust the reverse proxy
 }));
 
 // Initialize passport and restore authentication state from session

@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { api } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -7,32 +7,31 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useCallback(async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/auth/current-user', {
-        withCredentials: true
-      });
+      console.log('Checking auth status...');
+      const response = await api.get('/api/auth/current-user');
+      console.log('Auth response:', response.data);
       setUser(response.data);
     } catch (error) {
+      console.log('Auth error:', error);
       setUser(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const login = () => {
-    window.location.href = 'http://localhost:5000/api/auth/google';
+    window.location.href = '/api/auth/google';
   };
 
   const logout = async () => {
     try {
-      await axios.get('http://localhost:5000/api/auth/logout', {
-        withCredentials: true
-      });
+      await api.get('/api/auth/logout');
       setUser(null);
     } catch (error) {
       console.error('Logout error:', error);
@@ -40,7 +39,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      login, 
+      logout,
+      refreshAuth: checkAuth  // Expose the refresh function
+    }}>
       {children}
     </AuthContext.Provider>
   );

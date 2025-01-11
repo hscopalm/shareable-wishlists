@@ -1,9 +1,11 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { fetchLists } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const ListContext = createContext();
 
 export function ListProvider({ children }) {
+  const { user, loading: authLoading } = useAuth();
   const [lists, setLists] = useState([]);
   const [currentList, setCurrentList] = useState(null);
   const [isSharedList, setIsSharedList] = useState(false);
@@ -11,15 +13,23 @@ export function ListProvider({ children }) {
 
   // Use useCallback to memoize the loadLists function
   const loadLists = useCallback(async () => {
+    if (!user) {
+      setLists([]);
+      setLoading(false);
+      return;
+    }
+
     try {
+      console.log('Loading lists for user:', user);
       const data = await fetchLists();
       setLists(data);
-      setLoading(false);
     } catch (error) {
       console.error('Error loading lists:', error);
+      setLists([]);
+    } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user]);
 
   // Add this function back
   const setCurrentListWithSharedStatus = useCallback((list, isShared = false) => {
@@ -27,10 +37,12 @@ export function ListProvider({ children }) {
     setIsSharedList(isShared);
   }, []);
 
-  // Only fetch lists once when the component mounts
+  // Only fetch lists once when the component mounts or when user changes
   useEffect(() => {
-    loadLists();
-  }, [loadLists]);
+    if (!authLoading) {  // Only load lists after auth state is determined
+      loadLists();
+    }
+  }, [loadLists, authLoading]);
 
   return (
     <ListContext.Provider value={{ 
@@ -40,7 +52,7 @@ export function ListProvider({ children }) {
       setCurrentList: setCurrentListWithSharedStatus,
       isSharedList, 
       setIsSharedList,
-      loading,
+      loading: loading || authLoading,  // Consider both loading states
       refreshLists: loadLists
     }}>
       {children}

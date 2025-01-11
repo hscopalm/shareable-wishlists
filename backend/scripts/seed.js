@@ -6,10 +6,13 @@ const users = require('../models/seeds/wishlist.users.json');
 const Wishlist = require('../models/Wishlist');
 const wishlists = require('../models/seeds/wishlist.wishlists.json');
 
+// Use localhost if MONGODB_URI is not set (running locally)
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wishlist';
+
 async function seedUsers() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(MONGODB_URI);
     
     // Clear existing users (optional)
     await User.deleteMany({});
@@ -39,13 +42,14 @@ async function seedUsers() {
 async function seedWishlists() {
   try {
     // Connect to MongoDB
-    await mongoose.connect(process.env.MONGODB_URI);
+    await mongoose.connect(MONGODB_URI);
     
     // Clear existing wishlists
     await Wishlist.deleteMany({});
     
     // Insert the wishlists
     const result = await Wishlist.insertMany(wishlists);
+
     
     console.log(`Successfully seeded ${result.length} wishlists`);
     
