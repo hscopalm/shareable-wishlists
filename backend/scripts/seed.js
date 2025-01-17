@@ -6,8 +6,7 @@ const users = require('../models/seeds/wishlist.users.json');
 const Wishlist = require('../models/Wishlist');
 const wishlists = require('../models/seeds/wishlist.wishlists.json');
 
-// Use localhost if MONGODB_URI is not set (running locally)
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/wishlist';
+const MONGODB_URI = '';
 
 async function seedUsers() {
   try {
