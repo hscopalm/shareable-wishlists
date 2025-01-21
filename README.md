@@ -25,38 +25,42 @@ Born out of a need to make gift giving easier for my family after a particularly
 ```mermaid
 graph TD
     %% Styling
-    classDef browser fill:#f9f,stroke:#333,stroke-width:2px
+    classDef browser fill:#E8DEF8,stroke:#333,stroke-width:2px
     classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#232F3E
     classDef app fill:#85B09A,stroke:#333,stroke-width:2px
     classDef db fill:#68B587,stroke:#333,stroke-width:2px
     classDef external fill:#B4A7D6,stroke:#333,stroke-width:2px
 
     %% Client Layer
-    Client[Web Browser]:::browser
+    Client[Web Browser<br/>React SPA]:::browser
 
     %% AWS Infrastructure
     subgraph AWS["AWS Cloud"]
         ALB[Application Load Balancer]:::aws
         subgraph ECS["ECS Cluster"]
             FE[Frontend Container<br/>React + Nginx]:::app
-            BE[Backend Container<br/>Node.js + Express]:::app
+            subgraph BE["Backend Container"]
+                Express[Node.js + Express]:::app
+                EmailService[Email Service<br/>Nodemailer]:::app
+            end
         end
     end
 
     %% External Services
     subgraph External["External Services"]
-        MongoDB[(MongoDB Atlas<br/>Database)]:::db
+        subgraph Atlas["MongoDB Atlas"]
+            MongoDB[(Database<br/>Users, Lists, Logs)]:::db
+        end
         Google[Google OAuth<br/>Authentication]:::external
-        Email[SMTP Email<br/>Service]:::external
     end
 
     %% Connections
     Client --> |HTTPS| ALB
-    ALB --> |/api| BE
+    ALB --> |/api| Express
     ALB --> |/* static| FE
-    BE --> |User Data| MongoDB
-    BE --> |Auth| Google
-    BE --> |Notifications| Email
+    Express --> |Store/Query| MongoDB
+    Express --> |Auth| Google
+    EmailService --> |SMTP| SMTP[Email Provider]:::external
 
     %% Link Styling
     linkStyle default stroke:#333,stroke-width:2px;
