@@ -2,50 +2,103 @@
 
 A smart gift management platform that helps you create and share wishlists with friends and family.
 
+## What is this? Why?
+
+Have you ever shared a wishlist with family and friends, perhaps as a google doc? And then everyone has to coordinate on who is buying what? 
+
+This is a simple solution to that problem.
+
+Born out of a need to make gift giving easier for my family after a particularly stressful gift giving season, this is a simple platform that allows you to create and share wishlists with friends and family.
+
 ## Features
 
 - Create multiple gift lists
 - Add, edit, and remove items from your lists
 - Share lists with others via email
 - View lists shared with you
+- Claim items from shared lists
 - Track when shared lists are viewed
 - Sort items by priority, price, or date added
 
 ## Models
 
-- **User**: Authentication and user data
-- **List**: Wishlist container
-- **WishlistItem**: Individual wishlist items
-- **SharedList**: List sharing permissions
-- **ListView**: Track when users view shared lists
-- **PendingShare**: Temporary storage for email invites
+Our data model takes advantage of MongoDB's document-oriented structure to efficiently organize data with minimal collections:
+
+- **User**
+  - Core user data (email, name, picture)
+  - Google OAuth integration via `googleId`
+  - Support for pending user states
+
+- **Wishlist**
+  - Consolidated wishlist container and items
+  - Embedded items array with full item details
+  - Built-in sharing permissions via `sharedWith` array
+  - Integrated item claiming system with user references
+  - Properties per item:
+    - Basic details (title, description, link)
+    - Price and priority tracking
+    - Claim status with timestamp
+
+- **ActivityLog**
+  - Comprehensive user activity tracking
+  - Records all interactions (views, shares, claims)
+  - References to related users and wishlists
+  - Flexible `details` field for varied action types
+
+This design eliminates the need for separate collections for items, shares, and views, reducing query complexity and improving performance.
+
+## Architecture
+
+```mermaid
+graph TD
+    Client[Web Browser] --> ALB[AWS Application Load Balancer]
+    ALB --> FE[Frontend Container/ECS]
+    ALB --> BE[Backend Container/ECS]
+    BE --> MongoDB[(MongoDB Atlas)]
+    BE --> Google[Google OAuth]
+    BE --> Email[Email Service]
+```
 
 ## Tech Stack
 
-- Frontend: React with Material-UI
-- Backend: Node.js with Express
+- Infrastructure:
+  - AWS ECS for container orchestration
+  - Application Load Balancer for traffic distribution
+  - Terraform for Infrastructure as Code
+  - CI/CD with GitHub Actions
+- Frontend: 
+  - React with Material-UI
+  - Nginx for serving static content
+  - Containerized with Docker
+- Backend: 
+  - Node.js with Express
+  - Containerized with Docker
 - Database: MongoDB with Mongoose
 - Authentication: Google OAuth 2.0
 
 ## Development
 
 1. Clone the repository
-2. Install dependencies in both frontend and backend directories
-3. Set up environment variables
-4. Run backend server: `npm run dev`
-5. Run frontend server: `npm start`
+2. Set up environment variables (`.env` or similar)
+3. Build images
+    a. For local development:
+        - Build the images, and run the application via docker compose
+    b. For deployment:
+        - Build and deploy the images to AWS ECR via a deployment script
+4. Deploy the infrastructure (if you are deploying to AWS)
+    - Run `terraform init` and `terraform apply` to create the infrastructure
 
-## Environment Variables
+## Security Considerations
+- All secrets are managed through environment variables
+- OAuth 2.0 for secure authentication
+- HTTPS enforced in production
+- MongoDB Atlas with IP whitelisting
+- AWS security groups limit access to services
 
-Backend:
-- `MONGODB_URI`: MongoDB connection string
-- `GOOGLE_CLIENT_ID`: Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET`: Google OAuth client secret
-- `SESSION_SECRET`: Session encryption key
-- `ADMIN_EMAILS`: Comma-separated list of admin email addresses
-- `EMAIL_FROM`: Sender email for notifications
-- `EMAIL_PASSWORD`: Email account password
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-Frontend:
-- `REACT_APP_API_URL`: Backend API URL
-- `REACT_APP_GOOGLE_CLIENT_ID`: Google OAuth client ID
+## Acknowledgments
+- Material-UI for the component library
+- MongoDB Atlas for database hosting
+- AWS for infrastructure hosting
