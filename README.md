@@ -1,8 +1,8 @@
-# Gift Guru
+# �� Gift Guru
 
 A smart gift management platform that helps you create and share wishlists with friends and family.
 
-## What is this? Why?
+## ❓ What is this? Why?
 
 Have you ever shared a wishlist with family and friends, perhaps as a google doc? And then everyone has to coordinate on who is buying what? 
 
@@ -10,17 +10,76 @@ This is a simple solution to that problem.
 
 Born out of a need to make gift giving easier for my family after a particularly stressful gift giving season, this is a simple platform that allows you to create and share wishlists with friends and family.
 
-## Features
+## ✨ Features
 
-- Create multiple gift lists
-- Add, edit, and remove items from your lists
-- Share lists with others via email
-- View lists shared with you
-- Claim items from shared lists
-- Track when shared lists are viewed
-- Sort items by priority, price, or date added
+- 📝 Create multiple gift lists
+- ✏️ Add, edit, and remove items from your lists
+- 📧 Share lists with others via email
+- 👀 View lists shared with you
+- 🎯 Claim items from shared lists
+- 📊 Track when shared lists are viewed
+- 🔄 Sort items by priority, price, or date added
 
-## Models
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    %% Styling
+    classDef browser fill:#f9f,stroke:#333,stroke-width:2px
+    classDef aws fill:#FF9900,stroke:#232F3E,stroke-width:2px,color:#232F3E
+    classDef app fill:#85B09A,stroke:#333,stroke-width:2px
+    classDef db fill:#68B587,stroke:#333,stroke-width:2px
+    classDef external fill:#B4A7D6,stroke:#333,stroke-width:2px
+
+    %% Client Layer
+    Client[Web Browser]:::browser
+
+    %% AWS Infrastructure
+    subgraph AWS["AWS Cloud"]
+        ALB[Application Load Balancer]:::aws
+        subgraph ECS["ECS Cluster"]
+            FE[Frontend Container<br/>React + Nginx]:::app
+            BE[Backend Container<br/>Node.js + Express]:::app
+        end
+    end
+
+    %% External Services
+    subgraph External["External Services"]
+        MongoDB[(MongoDB Atlas<br/>Database)]:::db
+        Google[Google OAuth<br/>Authentication]:::external
+        Email[SMTP Email<br/>Service]:::external
+    end
+
+    %% Connections
+    Client --> |HTTPS| ALB
+    ALB --> |/api| BE
+    ALB --> |/* static| FE
+    BE --> |User Data| MongoDB
+    BE --> |Auth| Google
+    BE --> |Notifications| Email
+
+    %% Link Styling
+    linkStyle default stroke:#333,stroke-width:2px;
+```
+
+## 🛠️ Tech Stack
+
+- Infrastructure:
+  - AWS ECS for container orchestration
+  - Application Load Balancer for traffic distribution
+  - Terraform for Infrastructure as Code
+  - CI/CD with GitHub Actions
+- Frontend: 
+  - React with Material-UI
+  - Nginx for serving static content
+  - Containerized with Docker
+- Backend: 
+  - Node.js with Express
+  - Containerized with Docker
+- Database: MongoDB with Mongoose
+- Authentication: Google OAuth 2.0
+
+## 📚 Models
 
 Our data model takes advantage of MongoDB's document-oriented structure to efficiently organize data with minimal collections:
 
@@ -47,36 +106,7 @@ Our data model takes advantage of MongoDB's document-oriented structure to effic
 
 This design eliminates the need for separate collections for items, shares, and views, reducing query complexity and improving performance.
 
-## Architecture
-
-```mermaid
-graph TD
-    Client[Web Browser] --> ALB[AWS Application Load Balancer]
-    ALB --> FE[Frontend Container/ECS]
-    ALB --> BE[Backend Container/ECS]
-    BE --> MongoDB[(MongoDB Atlas)]
-    BE --> Google[Google OAuth]
-    BE --> Email[Email Service]
-```
-
-## Tech Stack
-
-- Infrastructure:
-  - AWS ECS for container orchestration
-  - Application Load Balancer for traffic distribution
-  - Terraform for Infrastructure as Code
-  - CI/CD with GitHub Actions
-- Frontend: 
-  - React with Material-UI
-  - Nginx for serving static content
-  - Containerized with Docker
-- Backend: 
-  - Node.js with Express
-  - Containerized with Docker
-- Database: MongoDB with Mongoose
-- Authentication: Google OAuth 2.0
-
-## Development
+## 💻 Development
 
 1. Clone the repository
 2. Set up environment variables (`.env` or similar)
@@ -88,17 +118,17 @@ graph TD
 4. Deploy the infrastructure (if you are deploying to AWS)
     - Run `terraform init` and `terraform apply` to create the infrastructure
 
-## Security Considerations
+## 🔒 Security Considerations
 - All secrets are managed through environment variables
 - OAuth 2.0 for secure authentication
 - HTTPS enforced in production
 - MongoDB Atlas with IP whitelisting
 - AWS security groups limit access to services
 
-## License
+## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Acknowledgments
+## 🙏 Acknowledgments
 - Material-UI for the component library
 - MongoDB Atlas for database hosting
 - AWS for infrastructure hosting
