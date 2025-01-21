@@ -1,4 +1,4 @@
-# �� Gift Guru
+# 🎁 Gift Guru
 
 A smart gift management platform that helps you create and share wishlists with friends and family.
 
