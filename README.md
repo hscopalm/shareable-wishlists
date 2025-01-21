@@ -4,7 +4,7 @@ A smart gift management platform that helps you create and share wishlists with 
 
 ## ❓ What is this? Why?
 
-Have you ever shared a wishlist with family and friends, perhaps as a google doc? And then everyone has to coordinate on who is buying what? 
+Have you ever shared a wishlist with family and friends, perhaps as a google doc? And then everyone has to coordinate on who is buying what without spoiling the surprise?
 
 This is a simple solution to that problem.
 
