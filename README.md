@@ -4,13 +4,15 @@ A smart gift management platform that helps you create and share wishlists with 
 
 🌐 **Check it out at [giftguru.cc](https://www.giftguru.cc)**
 
-> **Note**: Currently, access is limited to manually added users while Google OAuth publishing verification is pending. This restriction will be lifted soon!
+> **Note**: A google account is required to access the app. We don't require any sensitive or restricted scopes - we only use the public profile information to create a user account.
 
 ## ❓ What is this? Why?
 
 Have you ever shared a wishlist with family and friends, perhaps as a google doc? And then everyone has to coordinate on who is buying what without spoiling the surprise?
 
+
 This is a simple solution to that problem.
+
 
 Born out of a need to make gift giving easier for my family after a particularly stressful gift giving season, this is a simple platform that allows you to create and share wishlists with friends and family.
 
