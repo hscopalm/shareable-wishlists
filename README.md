@@ -2,7 +2,7 @@
 
 A smart gift management platform that helps you create and share wishlists with friends and family.
 
-🌐 **Check it out at [giftguru.cc](https://giftguru.cc)**
+🌐 **Check it out at [giftguru.cc](https://www.giftguru.cc)**
 
 > **Note**: Currently, access is limited to manually added users while Google OAuth publishing verification is pending. This restriction will be lifted soon!
 
