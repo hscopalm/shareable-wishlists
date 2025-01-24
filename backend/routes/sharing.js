@@ -151,20 +151,22 @@ router.get('/share/shared-with-me', async (req, res) => {
     .populate('user', 'name email picture')
     .sort({ createdAt: -1 });
 
-    // Format the response
-    const lists = sharedLists.map(list => ({
-      _id: list._id,
-      name: list.name,
-      description: list.description,
-      owner: {
-        _id: list.user._id,
-        name: list.user.name,
-        email: list.user.email,
-        picture: list.user.picture
-      },
-      items: list.items,
-      sharedAt: list.createdAt
-    }));
+    // Filter out lists where the owner no longer exists and format the response
+    const lists = sharedLists
+      .filter(list => list.user) // Only include lists where the owner still exists
+      .map(list => ({
+        _id: list._id,
+        name: list.name,
+        description: list.description,
+        owner: {
+          _id: list.user._id,
+          name: list.user.name,
+          email: list.user.email,
+          picture: list.user.picture
+        },
+        items: list.items,
+        sharedAt: list.createdAt
+      }));
 
     res.json(lists);
   } catch (error) {
