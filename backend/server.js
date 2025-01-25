@@ -1,4 +1,4 @@
-require('dotenv').config({ path: '../.env' });
+require('dotenv').config({ path: '../.env.development' });
 
 // Add this after dotenv config
 console.log('Environment variables loaded:', {

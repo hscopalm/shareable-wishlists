@@ -26,7 +26,8 @@ export const AuthProvider = ({ children }) => {
   }, [checkAuth]);
 
   const login = () => {
-    window.location.href = '/api/auth/google';
+    const baseUrl = window.location.origin;
+    window.location.href = `${baseUrl}/api/auth/google`;
   };
 
   const logout = async () => {

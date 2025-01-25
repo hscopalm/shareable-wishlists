@@ -119,7 +119,7 @@ This design eliminates the need for separate collections for items, shares, and 
 ## 💻 Development
 
 1. Clone the repository
-2. Set up environment variables (`.env` or similar)
+2. Set up environment variables (`.env.development` or similar)
 3. Build images
     a. For local development:
         - Build the images, and run the application via docker compose
@@ -129,7 +129,8 @@ This design eliminates the need for separate collections for items, shares, and 
     - Run `terraform init` and `terraform apply` to create the infrastructure
 
 ## 🔒 Security Considerations
-- All secrets are managed through environment variables
+- Development environment variables are managed through `.env.development`
+- Production secrets are managed through AWS Parameter Store
 - OAuth 2.0 for secure authentication
 - HTTPS enforced in production
 - MongoDB Atlas with IP whitelisting
