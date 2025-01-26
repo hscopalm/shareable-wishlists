@@ -20,8 +20,4 @@ COPY nginx.conf /etc/nginx/templates/default.conf.template
 
 EXPOSE 80
 
-# Use environment variable substitution
-ENV BACKEND_URL=http://localhost:5000
-ENV COOKIE_DOMAIN=localhost
-
 CMD ["/bin/sh", "-c", "envsubst '${BACKEND_URL} ${COOKIE_DOMAIN}' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"] 
