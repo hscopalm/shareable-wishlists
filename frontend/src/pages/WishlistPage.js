@@ -22,6 +22,7 @@ import {
   AttachMoney as PriceIcon,
   ArrowUpward as ArrowUpIcon,
   ArrowDownward as ArrowDownIcon,
+  Event as CalendarIcon,
 } from '@mui/icons-material';
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
@@ -244,6 +245,24 @@ function WishlistPage() {
             }}
           >
             {currentList.description}
+          </Typography>
+        )}
+        {currentList?.event_date && (
+          <Typography 
+            variant="body1" 
+            sx={{ 
+              color: 'text.secondary',
+              mt: 2,
+              borderLeft: '2px solid',
+              borderColor: 'primary.main',
+              pl: 2,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <CalendarIcon />
+            {new Date(currentList.event_date).toLocaleDateString()}
           </Typography>
         )}
       </Box>

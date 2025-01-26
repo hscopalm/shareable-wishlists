@@ -14,6 +14,7 @@ import { getSharedWithMe } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { useList } from '../contexts/ListContext';
 import WishlistItem from '../components/WishlistItem';
+import { Event as CalendarIcon } from '@mui/icons-material';
 
 function SharedListsPage() {
   const [sharedLists, setSharedLists] = useState([]);
@@ -124,6 +125,22 @@ function SharedListsPage() {
                       }}
                     >
                       {list.description}
+                    </Typography>
+                  )}
+
+                  {list.event_date && (
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ 
+                        mb: 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 1
+                      }}
+                    >
+                      <CalendarIcon fontSize="small" />
+                      {new Date(list.event_date).toLocaleDateString()}
                     </Typography>
                   )}
 

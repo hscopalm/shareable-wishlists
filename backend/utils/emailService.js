@@ -62,6 +62,13 @@ const getShareInviteEmail = ({ list, senderName, email, inviteLink }) => {
             </p>` : 
             ''
           }
+          ${list.event_date ? 
+            `<p style="color: #666; margin: 0 0 16px; display: flex; align-items: center;">
+              <span style="margin-right: 8px;">📅</span>
+              ${new Date(list.event_date).toLocaleDateString()}
+            </p>` : 
+            ''
+          }
         </div>
 
         <p style="color: #444; line-height: 1.5;">

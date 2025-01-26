@@ -18,6 +18,7 @@ import {
   Add as AddIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
+  Event as CalendarIcon,
 } from '@mui/icons-material';
 import { useList } from '../contexts/ListContext';
 import { useNavigate, Navigate } from 'react-router-dom';
@@ -31,7 +32,7 @@ function ListsPage() {
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingList, setEditingList] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', event_date: '' });
   const [hoveredCard, setHoveredCard] = useState(null);
 
   if (!user) {
@@ -45,7 +46,7 @@ function ListsPage() {
 
   const handleCreateClick = () => {
     setEditingList(null);
-    setFormData({ name: '', description: '' });
+    setFormData({ name: '', description: '', event_date: '' });
     setDialogOpen(true);
   };
 
@@ -55,7 +56,8 @@ function ListsPage() {
     setEditingList(list);
     setFormData({
       name: list.name,
-      description: list.description || ''
+      description: list.description || '',
+      event_date: list.event_date || ''
     });
     setDialogOpen(true);
   };
@@ -90,7 +92,7 @@ function ListsPage() {
         await loadLists();
       }
 
-      setFormData({ name: '', description: '' });
+      setFormData({ name: '', description: '', event_date: '' });
       setEditingList(null);
       setDialogOpen(false);
     } catch (error) {
@@ -139,11 +141,22 @@ function ListsPage() {
                     {list.description}
                   </Typography>
                 )}
-                <Typography 
-                  variant="caption" 
-                  color="text.secondary"
-                  sx={{ display: 'block', mt: 1 }}
-                >
+                {list.event_date && (
+                  <Typography 
+                    variant="body2" 
+                    color="text.secondary" 
+                    sx={{ 
+                      mb: 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1
+                    }}
+                  >
+                    <CalendarIcon fontSize="small" />
+                    {new Date(list.event_date).toLocaleDateString()}
+                  </Typography>
+                )}
+                <Typography variant="body2" color="text.secondary">
                   Created {formatDistanceToNow(new Date(list.createdAt))} ago
                 </Typography>
                 <Fade in={hoveredCard === list._id}>
@@ -210,6 +223,17 @@ function ListsPage() {
                 rows={3}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              />
+              <TextField
+                margin="dense"
+                label="Event Date (optional)"
+                type="date"
+                fullWidth
+                value={formData.event_date ? new Date(formData.event_date).toISOString().split('T')[0] : ''}
+                onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
+                InputLabelProps={{
+                  shrink: true,
+                }}
               />
             </Box>
           </DialogContent>

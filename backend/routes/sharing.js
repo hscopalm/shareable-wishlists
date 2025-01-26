@@ -158,6 +158,7 @@ router.get('/share/shared-with-me', async (req, res) => {
         _id: list._id,
         name: list.name,
         description: list.description,
+        event_date: list.event_date,
         owner: {
           _id: list.user._id,
           name: list.user.name,

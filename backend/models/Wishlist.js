@@ -6,6 +6,9 @@ const wishlistSchema = new mongoose.Schema({
     required: true
   },
   description: String,
+  event_date: {
+    type: Date
+  },
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
