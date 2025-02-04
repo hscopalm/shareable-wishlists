@@ -3,7 +3,12 @@ resource "aws_ecs_cluster" "main" {
 
   setting {
     name  = "containerInsights"
-    value = "enabled"
+    value = "disabled"
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
   }
 }
 
@@ -53,8 +58,8 @@ resource "aws_ecs_task_definition" "backend" {
   family                   = "wishlist-backend"
   network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
-  cpu                      = "512"
-  memory                   = "1024"
+  cpu                      = "256"
+  memory                   = "512"
   execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
 
@@ -131,19 +136,29 @@ resource "aws_ecs_task_definition" "backend" {
 
 resource "aws_cloudwatch_log_group" "frontend" {
   name              = "/ecs/wishlist-frontend"
-  retention_in_days = 30
+  retention_in_days = 7
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 }
 
 resource "aws_cloudwatch_log_group" "backend" {
   name              = "/ecs/wishlist-backend"
-  retention_in_days = 30
+  retention_in_days = 7
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 }
 
 resource "aws_ecs_service" "frontend" {
   name            = "${var.app_name}-frontend-${var.environment}"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.frontend.arn
-  desired_count   = 2
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -157,6 +172,11 @@ resource "aws_ecs_service" "frontend" {
     container_port   = 80
   }
 
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
+
   depends_on = [aws_lb_listener.http, aws_lb_listener.https]
 }
 
@@ -164,7 +184,7 @@ resource "aws_ecs_service" "backend" {
   name            = "${var.app_name}-backend-${var.environment}"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.backend.arn
-  desired_count   = 2
+  desired_count   = 1
   launch_type     = "FARGATE"
 
   network_configuration {
@@ -176,6 +196,11 @@ resource "aws_ecs_service" "backend" {
     target_group_arn = aws_lb_target_group.backend.arn
     container_name   = "backend"
     container_port   = 5000
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
   }
 
   depends_on = [aws_lb_listener.http, aws_lb_listener.https]

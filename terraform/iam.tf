@@ -13,6 +13,11 @@ resource "aws_iam_role" "ecs_task_execution_role" {
       }
     ]
   })
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_role_policy" {
@@ -57,6 +62,11 @@ resource "aws_iam_role" "ecs_task_role" {
       }
     ]
   })
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 }
 
 # Add additional permissions for task role if needed

@@ -12,4 +12,9 @@ module "vpc" {
   single_nat_gateway   = true
   enable_dns_hostnames = true
   enable_dns_support   = true
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 } 

@@ -5,6 +5,11 @@ resource "aws_ecr_repository" "frontend" {
   image_scanning_configuration {
     scan_on_push = true
   }
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 }
 
 resource "aws_ecr_repository" "backend" {
@@ -13,6 +18,11 @@ resource "aws_ecr_repository" "backend" {
 
   image_scanning_configuration {
     scan_on_push = true
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
   }
 }
 

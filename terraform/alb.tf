@@ -4,6 +4,11 @@ resource "aws_lb" "main" {
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
   subnets            = module.vpc.public_subnets
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 }
 
 resource "aws_lb_target_group" "frontend" {
@@ -24,6 +29,11 @@ resource "aws_lb_target_group" "frontend" {
     timeout             = 5
     unhealthy_threshold = 2
   }
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
+  }
 }
 
 resource "aws_lb_target_group" "backend" {
@@ -43,6 +53,11 @@ resource "aws_lb_target_group" "backend" {
     protocol            = "HTTP"
     timeout             = 5
     unhealthy_threshold = 2
+  }
+
+  tags = {
+    Environment = var.environment
+    Application = var.app_name
   }
 }
 
