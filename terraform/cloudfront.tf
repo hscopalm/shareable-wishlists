@@ -31,13 +31,19 @@ resource "aws_cloudfront_distribution" "main" {
     custom_origin_config {
       http_port              = 80
       https_port             = 443
-      origin_protocol_policy = "https-only"
+      origin_protocol_policy = "http-only"
       origin_ssl_protocols   = ["TLSv1.2"]
     }
 
     custom_header {
       name  = "X-Custom-Header"
       value = var.cloudfront_secret
+    }
+
+    # Tell backend the original request was HTTPS (needed for secure cookies)
+    custom_header {
+      name  = "X-Forwarded-Proto"
+      value = "https"
     }
   }
 
@@ -72,10 +78,25 @@ resource "aws_cloudfront_distribution" "main" {
     cached_methods         = ["GET", "HEAD", "OPTIONS"]
     compress               = true
 
-    # Forward everything to backend for API calls
+    # Forward everything to backend for API calls - especially auth headers
+    # NOTE: Do NOT forward "Host" header - it causes redirect loops since ALB
+    # would receive the CloudFront host instead of its own
     forwarded_values {
       query_string = true
-      headers      = ["*"]
+      headers = [
+        "Authorization",
+        "CloudFront-Forwarded-Proto",
+        "CloudFront-Is-Desktop-Viewer",
+        "CloudFront-Is-Mobile-Viewer",
+        "CloudFront-Is-Tablet-Viewer",
+        "Origin",
+        "Referer",
+        "User-Agent",
+        "Accept",
+        "Accept-Language",
+        "Accept-Encoding",
+        "Accept-Charset"
+      ]
 
       cookies {
         forward = "all"

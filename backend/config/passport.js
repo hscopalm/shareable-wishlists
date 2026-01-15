@@ -20,12 +20,17 @@ if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
     process.exit(1);
   }
 
+// Build callback URL from FRONTEND_URL or default to production domain
+const frontendUrl = process.env.FRONTEND_URL || 'https://www.giftguru.cc';
+const callbackURL = `${frontendUrl}/api/auth/google/callback`;
+
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`
+      callbackURL: callbackURL,
+      proxy: true
     },
     async (accessToken, refreshToken, profile, done) => {
       try {

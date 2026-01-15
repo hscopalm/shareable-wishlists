@@ -46,8 +46,12 @@ resource "aws_ecs_task_definition" "backend" {
           value = "https://www.giftguru.cc"
         },
         {
+          name  = "CLOUDFRONT_SECRET"
+          value = var.cloudfront_secret
+        },
+        {
           name  = "COOKIE_DOMAIN"
-          value = "www.giftguru.cc"
+          value = ".giftguru.cc"
         }
       ]
       secrets = [
@@ -127,4 +131,4 @@ resource "aws_ecs_service" "backend" {
   }
 
   depends_on = [aws_lb_listener.http, aws_lb_listener.https]
-} 
+}
