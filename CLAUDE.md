@@ -20,6 +20,8 @@ docker-compose up --build
 # MongoDB runs on: localhost:27017
 ```
 
+**Development Auth Bypass**: Set `DEV_AUTO_LOGIN=true` in `.env.development` to skip Google OAuth and auto-login as a seed user. This allows local development without Google OAuth credentials.
+
 ### Frontend Development
 ```bash
 cd frontend
@@ -135,18 +137,23 @@ The application runs on AWS ECS with:
 - Located in `backend/utils/emailService.js`
 - Uses nodemailer for sending share notifications
 - Email notifications sent when lists are shared with users
+- **Optional**: If `GOOGLE_SA_USERNAME` or `GOOGLE_APP_PASSWORD` are not set, email is disabled gracefully (logs instead of sending)
 
 ## Environment Variables
 
 ### Backend (.env.development or environment)
-- `GOOGLE_CLIENT_ID` - Google OAuth client ID
-- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret
+- `GOOGLE_CLIENT_ID` - Google OAuth client ID (not required if DEV_AUTO_LOGIN=true)
+- `GOOGLE_CLIENT_SECRET` - Google OAuth client secret (not required if DEV_AUTO_LOGIN=true)
 - `SESSION_SECRET` - Express session secret
 - `MONGODB_URI` - MongoDB connection string
 - `FRONTEND_URL` - Frontend URL (for OAuth callback)
 - `NODE_ENV` - Environment (development/production)
-- `COOKIE_DOMAIN` - Cookie domain setting
+- `COOKIE_DOMAIN` - Cookie domain setting (only used in production)
 - `PORT` - Backend port (default: 5000)
+- `DEV_AUTO_LOGIN` - Set to "true" to bypass Google OAuth in development
+- `DEV_USER_EMAIL` - Email of user to auto-login as in dev mode (default: hscopalm@gmail.com)
+- `GOOGLE_SA_USERNAME` - Email service username (optional - email disabled if not set)
+- `GOOGLE_APP_PASSWORD` - Email service app password (optional - email disabled if not set)
 
 ### Frontend
 - API calls use relative paths (empty `API_BASE_URL`) to work with ALB routing
@@ -176,7 +183,7 @@ The application runs on AWS ECS with:
 
 1. **Server Startup Order**: MongoDB connection must complete BEFORE session middleware initialization. The `startServer()` async function ensures proper order.
 
-2. **Session Cookie Configuration**: Cookie settings (secure, domain, sameSite) must match environment. Incorrect settings prevent authentication in production.
+2. **Session Cookie Configuration**: Cookie settings (secure, domain, sameSite) must match environment. Cookie domain is only set in production to allow any host in development.
 
 3. **OAuth Callback URL**: Must match exactly in Google Cloud Console and `FRONTEND_URL` env var. ALB routing requires callback through frontend domain.
 
@@ -186,11 +193,17 @@ The application runs on AWS ECS with:
 
 6. **Embedded Items**: Items are embedded in Wishlist documents, not separate. Update/delete operations target the Wishlist document with item ID.
 
+7. **Development Auth Bypass**: When `DEV_AUTO_LOGIN=true` and `NODE_ENV=development`, Google OAuth is completely disabled. The `/api/auth/google` route auto-logs in as the dev user instead. This is safe because it requires BOTH environment variables to be set.
+
 ## MongoDB Administration
 
 - Database scripts located in `mongo/` directory
 - Seeds available for test data in `mongo/seeds/`
 - Scripts for managing orphaned records and user data
+- **Seed Data Format**: Seeds use MongoDB Extended JSON format for proper type handling:
+  - ObjectIds: `{"$oid": "6763b6892d9d2bba36992ecd"}`
+  - Dates: `{"$date": "2024-12-19T06:00:41.698Z"}`
+  - Import with: `mongoimport --uri "$MONGODB_URI" --collection users --file mongo/seeds/wishlist.users.json --jsonArray`
 
 ## Deployment Notes
 
