@@ -70,15 +70,12 @@ function ShareListDialog({ open, onClose, listId }) {
 
   const loadSharedUsers = useCallback(async () => {
     if (!listId) {
-      console.log('No listId provided to loadSharedUsers');
       return;
     }
-    
+
     try {
       setLoading(true);
-      console.log('Fetching shared users for list:', listId);
       const data = await getSharedUsers(listId);
-      console.log('Received shared users:', data);
       setSharedUsers(data);
     } catch (error) {
       console.error('Error loading shared users:', error);
@@ -90,7 +87,6 @@ function ShareListDialog({ open, onClose, listId }) {
 
   useEffect(() => {
     if (open) {
-      console.log('ShareListDialog opened, loading shared users');
       loadSharedUsers();
     }
   }, [open, loadSharedUsers]);

@@ -49,7 +49,6 @@ function WishlistForm({ listId, initialData, onSubmit }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      console.log('Submitting form:', { formData, listId, initialData });
       let response;
       if (initialData) {
         response = await updateWishlistItem(initialData._id, {
@@ -61,10 +60,8 @@ function WishlistForm({ listId, initialData, onSubmit }) {
           ...formData,
           list: listId
         };
-        console.log('Creating new item:', submitData);
         response = await createWishlistItem(submitData);
       }
-      console.log('Submit response:', response);
       onSubmit(response);
     } catch (error) {
       console.error('Error saving item:', error);

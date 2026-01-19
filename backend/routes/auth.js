@@ -30,35 +30,23 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
     try {
       const devUser = await User.findOne({ email: process.env.DEV_USER_EMAIL || 'hscopalm@gmail.com' });
       if (!devUser) {
-        console.log('Dev user not found');
         return res.redirect(`${process.env.FRONTEND_URL}/?error=dev_user_not_found`);
       }
 
-      console.log('Found dev user:', devUser.email);
-
       req.login(devUser, (err) => {
         if (err) {
-          console.log('Login error:', err);
           return res.redirect(`${process.env.FRONTEND_URL}/?error=login_failed`);
         }
-
-        console.log('Login successful');
-        console.log('req.user:', req.user);
-        console.log('req.session.passport:', req.session.passport);
-        console.log('req.isAuthenticated():', req.isAuthenticated());
 
         // Explicitly save session before redirect
         req.session.save((saveErr) => {
           if (saveErr) {
-            console.log('Session save error:', saveErr);
             return res.redirect(`${process.env.FRONTEND_URL}/?error=session_save_failed`);
           }
-          console.log('Session saved with passport:', req.session.passport);
           res.redirect(`${process.env.FRONTEND_URL}/`);
         });
       });
     } catch (error) {
-      console.log('Dev login error:', error);
       res.redirect(`${process.env.FRONTEND_URL}/?error=server_error`);
     }
   });

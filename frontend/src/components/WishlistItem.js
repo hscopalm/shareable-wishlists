@@ -147,14 +147,17 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
               variant="outlined"
             />
           )}
-          {item.priority && (
-            <Chip
-              label={getPriorityInfo(item.priority).label}
-              size="small"
-              color={getPriorityInfo(item.priority).color}
-              variant="outlined"
-            />
-          )}
+          {item.priority && (() => {
+            const { label, color } = getPriorityInfo(item.priority);
+            return (
+              <Chip
+                label={label}
+                size="small"
+                color={color}
+                variant="outlined"
+              />
+            );
+          })()}
           {isSharedList && claimer && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
               <Typography variant="body2" color="text.secondary">

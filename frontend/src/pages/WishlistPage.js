@@ -42,21 +42,22 @@ function WishlistPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  useEffect(() => {
-    const loadListData = async () => {
-      try {
-        const data = await fetchListItems(listId);
-        setCurrentList(data.list, data.isShared);
-        setItems(data.items || []);
-      } catch (error) {
-        console.error('Error loading list:', error);
-        // Redirect to appropriate page on error
+  const loadItems = async (redirectOnError = false) => {
+    try {
+      const data = await fetchListItems(listId);
+      setItems(data.items || []);
+      setCurrentList(data.list, data.isShared);
+    } catch (error) {
+      console.error('Error loading wishlist items:', error);
+      if (redirectOnError) {
         navigate(isSharedList ? '/shared' : '/');
       }
-    };
+    }
+  };
 
+  useEffect(() => {
     if (listId) {
-      loadListData();
+      loadItems(true);
     }
 
     // Cleanup shared list state
@@ -65,17 +66,7 @@ function WishlistPage() {
         setCurrentList(null, false);
       }
     };
-  }, [listId, setCurrentList, navigate, isSharedList]);
-
-  const loadItems = async () => {
-    try {
-      const data = await fetchListItems(listId);
-      setItems(data.items || []);
-      setCurrentList(data.list, data.isShared);
-    } catch (error) {
-      console.error('Error loading wishlist items:', error);
-    }
-  };
+  }, [listId]);
 
   const handleEditItem = (item) => {
     setEditingItem(item);
@@ -361,8 +352,7 @@ function WishlistPage() {
           <WishlistForm
             listId={currentList?._id}
             initialData={editingItem}
-            onSubmit={(savedItem) => {
-              console.log('Item saved:', savedItem);
+            onSubmit={() => {
               setOpenAddDialog(false);
               setEditingItem(null);
               loadItems();

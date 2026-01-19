@@ -10,15 +10,17 @@ import SharedListsPage from './pages/SharedListsPage';
 import { ListProvider } from './contexts/ListContext';
 import ListsPage from './pages/ListsPage';
 
+const LoadingSpinner = () => (
+  <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+    <CircularProgress />
+  </Box>
+);
+
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <LoadingSpinner />;
   }
 
   if (!user) {
@@ -37,11 +39,7 @@ function AppContent() {
   };
 
   if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <CircularProgress />
-      </Box>
-    );
+    return <LoadingSpinner />;
   }
 
   return (

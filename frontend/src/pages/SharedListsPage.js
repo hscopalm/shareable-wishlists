@@ -6,14 +6,12 @@ import {
   Card,
   CardContent,
   Avatar,
-  Skeleton,
-  CardActionArea
+  Skeleton
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { getSharedWithMe } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { useList } from '../contexts/ListContext';
-import WishlistItem from '../components/WishlistItem';
 import { Event as CalendarIcon } from '@mui/icons-material';
 
 function SharedListsPage() {
@@ -40,19 +38,6 @@ function SharedListsPage() {
   const handleListClick = (list) => {
     setCurrentList(list);
     navigate(`/list/${list._id}`);
-  };
-
-  const handleStatusUpdate = (itemId, newStatus) => {
-    setSharedLists(prevLists => 
-      prevLists.map(list => ({
-        ...list,
-        items: list.items?.map(item => 
-          item._id === itemId 
-            ? { ...item, status: newStatus }
-            : item
-        )
-      }))
-    );
   };
 
   if (loading) {

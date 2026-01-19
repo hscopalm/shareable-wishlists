@@ -21,23 +21,17 @@ import {
   Event as CalendarIcon,
 } from '@mui/icons-material';
 import { useList } from '../contexts/ListContext';
-import { useNavigate, Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { deleteList, createList, updateList } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
-import { useAuth } from '../contexts/AuthContext';
 
 function ListsPage() {
   const { lists, refreshLists: loadLists, setCurrentList } = useList();
-  const { user } = useAuth();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingList, setEditingList] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '', event_date: '' });
   const [hoveredCard, setHoveredCard] = useState(null);
-
-  if (!user) {
-    return <Navigate to="/login" />;
-  }
 
   const handleListClick = (list) => {
     setCurrentList(list);
@@ -52,7 +46,6 @@ function ListsPage() {
 
   const handleEditClick = (event, list) => {
     event.stopPropagation();
-    console.log('Editing list:', list);
     setEditingList(list);
     setFormData({
       name: list.name,
@@ -82,10 +75,7 @@ function ListsPage() {
       }
 
       if (editingList) {
-        console.log('Updating list:', { id: editingList._id, data: formData });
-        const updatedList = await updateList(editingList._id, formData);
-        console.log('List updated:', updatedList);
-        
+        await updateList(editingList._id, formData);
         await loadLists();
       } else {
         const newList = await createList(formData);

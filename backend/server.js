@@ -1,12 +1,5 @@
 require('dotenv').config({ path: '../.env.development' });
 
-// Add this after dotenv config
-console.log('Environment variables loaded:', {
-  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID ? 'Set' : 'Not set',
-  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET ? 'Set' : 'Not set',
-  MONGODB_URI: process.env.MONGODB_URI ? 'Set' : 'Not set'
-});
-
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -68,15 +61,8 @@ app.get('/', (req, res) => {
 const startServer = async () => {
   try {
     // Connect to MongoDB first
-    await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-    });
+    await mongoose.connect(process.env.MONGODB_URI);
     console.log('Successfully connected to MongoDB.');
-
-    // List collections after connection
-    const collections = await mongoose.connection.db.listCollections().toArray();
-    console.log('Available collections:', collections.map(c => c.name));
 
     // Initialize session after MongoDB is connected
     app.use(session({
@@ -102,16 +88,6 @@ const startServer = async () => {
     // Initialize passport after session
     app.use(passport.initialize());
     app.use(passport.session());
-
-    // Debug middleware - after session and passport
-    app.use((req, res, next) => {
-      if (req.path === '/health') {
-        return next();
-      }
-      console.log('Session ID:', req.sessionID);
-      console.log('Is Authenticated:', req.isAuthenticated?.());
-      next();
-    });
 
     // Auth middleware - defined after passport initialization
     const requireAuth = (req, res, next) => {

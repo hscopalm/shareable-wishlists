@@ -13,13 +13,8 @@ const api = axios.create({
 export { api };
 
 export const createWishlistItem = async (data) => {
-  try {
-    const response = await api.post('/api/wishlist', data);
-    return response.data;
-  } catch (error) {
-    console.error('Error creating wishlist item:', error);
-    throw error;
-  }
+  const response = await api.post('/api/wishlist', data);
+  return response.data;
 };
 
 export const updateWishlistItem = async (itemId, updates) => {
@@ -43,15 +38,8 @@ export const createList = async (listData) => {
 };
 
 export const updateList = async (listId, listData) => {
-  try {
-    console.log('Making update request:', { listId, listData });
-    const response = await api.put(`/api/lists/${listId}`, listData);
-    console.log('Update response:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error updating list:', error);
-    throw error;
-  }
+  const response = await api.put(`/api/lists/${listId}`, listData);
+  return response.data;
 };
 
 export const deleteList = async (listId) => {
@@ -70,15 +58,8 @@ export const shareList = async (listId, email) => {
 };
 
 export const getSharedUsers = async (listId) => {
-  try {
-    console.log('Making API request to get shared users for list:', listId);
-    const response = await api.get(`/api/share/${listId}/shared-with`);
-    console.log('API response for shared users:', response.data);
-    return response.data;
-  } catch (error) {
-    console.error('Error fetching shared users:', error);
-    throw error;
-  }
+  const response = await api.get(`/api/share/${listId}/shared-with`);
+  return response.data;
 };
 
 export const unshareList = async (listId, userId) => {

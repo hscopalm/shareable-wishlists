@@ -20,7 +20,6 @@ export function ListProvider({ children }) {
     }
 
     try {
-      console.log('Loading lists for user:', user);
       const data = await fetchLists();
       setLists(data);
     } catch (error) {
