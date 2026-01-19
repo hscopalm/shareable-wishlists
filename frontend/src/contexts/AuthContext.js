@@ -15,6 +15,22 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data);
     } catch (error) {
       console.log('Auth error:', error);
+
+      // In development, automatically attempt dev-login
+      if (process.env.NODE_ENV === 'development') {
+        try {
+          console.log('Attempting development auto-login...');
+          const devLoginResponse = await api.get('/api/auth/dev-login');
+          console.log('Dev login response:', devLoginResponse.data);
+          // Re-check auth after dev login
+          const authResponse = await api.get('/api/auth/current-user');
+          setUser(authResponse.data);
+          return;
+        } catch (devError) {
+          console.log('Dev login failed:', devError);
+        }
+      }
+
       setUser(null);
     } finally {
       setLoading(false);

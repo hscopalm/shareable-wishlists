@@ -1,28 +1,42 @@
 const nodemailer = require('nodemailer');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: process.env.GOOGLE_SA_USERNAME,
-    pass: process.env.GOOGLE_APP_PASSWORD
-  }
-});
+// Check if email credentials are configured
+const emailEnabled = process.env.GOOGLE_SA_USERNAME && process.env.GOOGLE_APP_PASSWORD;
 
-const verifyConnection = async () => {
-  try {
-    await transporter.verify();
-    console.log('Email service connected successfully');
-  } catch (error) {
-    console.error('Email service connection error:', error);
-    throw error;
-  }
-};
+let transporter = null;
 
-verifyConnection();
+if (emailEnabled) {
+  transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: {
+      user: process.env.GOOGLE_SA_USERNAME,
+      pass: process.env.GOOGLE_APP_PASSWORD
+    }
+  });
+
+  const verifyConnection = async () => {
+    try {
+      await transporter.verify();
+      console.log('Email service connected successfully');
+    } catch (error) {
+      console.error('Email service connection error:', error);
+      // Don't throw - allow app to continue without email
+    }
+  };
+
+  verifyConnection();
+} else {
+  console.log('Email service disabled: missing GOOGLE_SA_USERNAME or GOOGLE_APP_PASSWORD');
+}
 
 const sendEmail = async ({ to, subject, html }) => {
+  if (!transporter) {
+    console.log('Email skipped (service disabled):', { to, subject });
+    return { messageId: 'disabled' };
+  }
+
   try {
     const mailOptions = {
       from: process.env.GOOGLE_SA_USERNAME,

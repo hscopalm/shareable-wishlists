@@ -20,7 +20,11 @@ const server = http.createServer(app);
 
 // Basic middleware that doesn't depend on session
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : 'http://localhost',
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : [
+    'http://localhost',
+    'http://localhost:3000',
+    process.env.FRONTEND_URL
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
@@ -89,7 +93,8 @@ const startServer = async () => {
         maxAge: 24 * 60 * 60 * 1000,
         httpOnly: true,
         sameSite: 'lax',
-        domain: process.env.NODE_ENV === 'production' ? process.env.COOKIE_DOMAIN : 'localhost'
+        // Don't set domain in development to allow any host (localhost, IP, etc.)
+        ...(process.env.NODE_ENV === 'production' && { domain: process.env.COOKIE_DOMAIN })
       },
       proxy: true
     }));

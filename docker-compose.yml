@@ -4,7 +4,7 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "80:80"
+      - "0.0.0.0:80:80"
     env_file:
       - .env.development
     depends_on:
@@ -13,7 +13,7 @@ services:
   backend:
     build: ./backend
     ports:
-      - "5000:5000"
+      - "0.0.0.0:5000:5000"
     env_file:
       - .env.development
     depends_on:
@@ -22,7 +22,7 @@ services:
   mongodb:
     image: mongo:latest
     ports:
-      - "27017:27017"
+      - "0.0.0.0:27017:27017"
     volumes:
       - mongodb_data:/data/db
 

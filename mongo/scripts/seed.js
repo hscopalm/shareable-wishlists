@@ -2,9 +2,9 @@ require('dotenv').config({ path: '.env.development' }); // Load the .env file
 
 const mongoose = require('mongoose');
 const User = require('../../backend/models/User');
-const users = require('../models/seeds/wishlist.users.json');
+const users = require('../seeds/wishlist.users.json');
 const Wishlist = require('../../backend/models/Wishlist');
-const wishlists = require('../models/seeds/wishlist.wishlists.json');
+const wishlists = require('../seeds/wishlist.wishlists.json');
 
 // const MONGODB_URI = process.env.MONGODB_URI;
 const MONGODB_URI = 'mongodb://localhost:27017/wishlist';
