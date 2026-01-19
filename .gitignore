@@ -148,3 +148,4 @@ terraform.rc
 # repo specific
 deploy-images.ps1
 .env.*
+frontend/build/
