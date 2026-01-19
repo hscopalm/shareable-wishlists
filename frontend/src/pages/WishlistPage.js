@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Button,
   Dialog,
@@ -41,6 +41,50 @@ function WishlistPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
 
+  // Close dialogs when back button is pressed
+  const closeAllDialogs = useCallback(() => {
+    setOpenAddDialog(false);
+    setOpenShareDialog(false);
+    setEditingItem(null);
+  }, []);
+
+  // Handle browser back button for dialogs
+  useEffect(() => {
+    const handlePopState = () => {
+      if (openAddDialog || openShareDialog) {
+        closeAllDialogs();
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [openAddDialog, openShareDialog, closeAllDialogs]);
+
+  // Push history state when dialog opens
+  const openAddDialogWithHistory = useCallback((item = null) => {
+    window.history.pushState({ dialog: 'add' }, '');
+    setEditingItem(item);
+    setOpenAddDialog(true);
+  }, []);
+
+  const openShareDialogWithHistory = useCallback(() => {
+    window.history.pushState({ dialog: 'share' }, '');
+    setOpenShareDialog(true);
+  }, []);
+
+  // Close dialog and go back in history
+  const closeAddDialog = useCallback(() => {
+    if (openAddDialog) {
+      window.history.back();
+    }
+  }, [openAddDialog]);
+
+  const closeShareDialog = useCallback(() => {
+    if (openShareDialog) {
+      window.history.back();
+    }
+  }, [openShareDialog]);
+
   const loadItems = async (redirectOnError = false) => {
     try {
       const data = await fetchListItems(listId);
@@ -69,8 +113,7 @@ function WishlistPage() {
   }, [listId]);
 
   const handleEditItem = (item) => {
-    setEditingItem(item);
-    setOpenAddDialog(true);
+    openAddDialogWithHistory(item);
   };
 
   const handleDeleteItem = async (item) => {
@@ -272,7 +315,7 @@ function WishlistPage() {
           <Button
             variant="contained"
             startIcon={<AddIcon />}
-            onClick={() => setOpenAddDialog(true)}
+            onClick={() => openAddDialogWithHistory()}
             color="primary"
             sx={{ minWidth: 'fit-content' }}
           >
@@ -332,16 +375,13 @@ function WishlistPage() {
           ariaLabel="share"
           sx={{ position: 'fixed', bottom: 16, right: 16 }}
           icon={<ShareIcon />}
-          onClick={() => setOpenShareDialog(true)}
+          onClick={openShareDialogWithHistory}
         />
       )}
 
-      <Dialog 
-        open={openAddDialog} 
-        onClose={() => {
-          setOpenAddDialog(false);
-          setEditingItem(null);
-        }}
+      <Dialog
+        open={openAddDialog}
+        onClose={closeAddDialog}
         maxWidth="sm"
         fullWidth
       >
@@ -353,17 +393,16 @@ function WishlistPage() {
             listId={currentList?._id}
             initialData={editingItem}
             onSubmit={() => {
-              setOpenAddDialog(false);
-              setEditingItem(null);
+              closeAddDialog();
               loadItems();
             }}
           />
         </DialogContent>
       </Dialog>
 
-      <ShareListDialog 
+      <ShareListDialog
         open={openShareDialog}
-        onClose={() => setOpenShareDialog(false)}
+        onClose={closeShareDialog}
         listId={currentList?._id}
       />
     </Box>
