@@ -210,7 +210,7 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
               position: 'absolute',
               bottom: 8,
               right: 8,
-              opacity: 0,
+              opacity: { xs: 1, sm: 0 },
               transition: 'opacity 0.2s',
               backgroundColor: 'rgba(255, 255, 255, 0.95)',
               borderRadius: 1,
@@ -265,11 +265,8 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
               position: 'absolute',
               bottom: 8,
               right: 8,
-              opacity: 0,
+              opacity: { xs: 1, sm: 0 },
               transition: 'opacity 0.2s',
-              '&:hover': {
-                opacity: 1,
-              },
               '.MuiCard-root:hover &': {
                 opacity: 1,
               },

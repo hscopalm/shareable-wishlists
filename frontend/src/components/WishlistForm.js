@@ -70,7 +70,7 @@ function WishlistForm({ listId, initialData, onSubmit }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Stack spacing={2} sx={{ p: 2, minWidth: '300px' }}>
+      <Stack spacing={2} sx={{ p: { xs: 1, sm: 2 } }}>
         <TextField
           name="title"
           label="Title"

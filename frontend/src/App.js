@@ -48,7 +48,7 @@ function AppContent() {
       <Router>
         <div style={{ backgroundColor: '#1E1E2E', minHeight: '100vh' }}>
           {user && <Navbar />}
-          <Container maxWidth="lg" sx={{ pt: 4, pb: 8 }}>
+          <Container maxWidth="lg" sx={{ pt: { xs: 2, sm: 4 }, pb: { xs: 4, sm: 8 }, px: { xs: 2, sm: 3 } }}>
             <Routes>
               <Route path="/login" element={<LoginWrapper />} />
               <Route path="/" element={

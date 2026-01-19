@@ -126,7 +126,7 @@ function WishlistPage() {
             '&:hover': {
               backgroundColor: isActive ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 255, 255, 0.1)',
             },
-            mr: 1,
+            mr: { xs: 0.5, sm: 1 },
           }}
         >
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
@@ -164,12 +164,12 @@ function WishlistPage() {
 
   return (
     <Box>
-      <Box 
-        mb={4} 
+      <Box
+        mb={4}
         sx={{
           backgroundColor: 'rgba(46, 52, 64, 0.3)',
           borderRadius: '12px',
-          padding: '24px',
+          padding: { xs: '16px', sm: '24px' },
           border: '1px solid rgba(255, 255, 255, 0.1)',
         }}
       >
@@ -292,7 +292,7 @@ function WishlistPage() {
             ml: 'auto', // This pushes the sort controls to the right
           }}
         >
-          <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
             Sort by:
           </Typography>
           <SortButton field="createdAt" icon={TimeIcon} label="Date Added" />

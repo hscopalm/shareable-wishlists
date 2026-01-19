@@ -1,18 +1,20 @@
 import React, { useState } from 'react';
-import { 
-  AppBar, 
-  Toolbar, 
-  Typography, 
-  Button, 
-  Avatar, 
-  Box, 
-  MenuItem, 
+import {
+  AppBar,
+  Toolbar,
+  Typography,
+  Button,
+  Avatar,
+  Box,
+  MenuItem,
   ListItemIcon,
   ListItemText,
   Popper,
   Paper,
   Grow,
   Divider,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -28,11 +30,15 @@ function Navbar() {
   const { user, logout } = useAuth();
   const { lists } = useList();
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [listsAnchorEl, setListsAnchorEl] = useState(null);
   const [showLogout, setShowLogout] = useState(false);
 
   const handleListsMouseEnter = (event) => {
-    setListsAnchorEl(event.currentTarget);
+    if (!isMobile) {
+      setListsAnchorEl(event.currentTarget);
+    }
   };
 
   const handleListsMouseLeave = () => {
@@ -57,9 +63,9 @@ function Navbar() {
         boxShadow: 'none',
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between', gap: 4 }}>
+      <Toolbar sx={{ justifyContent: 'space-between', gap: { xs: 1, sm: 4 } }}>
         {/* Logo and Navigation Links - now grouped together */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 3 } }}>
           {/* Logo and Brand */}
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <GiftIcon sx={{ color: 'primary.main', mr: 1, fontSize: 28 }} />
@@ -77,40 +83,46 @@ function Navbar() {
           </Box>
           
           {/* Navigation Links - moved here and updated typography */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
             <Button
               color="inherit"
               startIcon={<ListIcon />}
               onMouseEnter={handleListsMouseEnter}
               onClick={() => navigate('/')}
-              sx={{ 
+              sx={{
                 borderRadius: '8px',
-                px: 2,
+                px: { xs: 1, sm: 2 },
                 fontSize: '1rem',
                 fontWeight: 500,
+                minWidth: { xs: 'auto', sm: 'auto' },
                 '&:hover': {
                   backgroundColor: 'rgba(76, 175, 80, 0.08)',
                 }
               }}
             >
-              My Lists
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                My Lists
+              </Box>
             </Button>
 
-            <Button 
+            <Button
               color="inherit"
               startIcon={<PeopleIcon />}
               onClick={() => navigate('/shared')}
-              sx={{ 
+              sx={{
                 borderRadius: '8px',
-                px: 2,
+                px: { xs: 1, sm: 2 },
                 fontSize: '1rem',
                 fontWeight: 500,
+                minWidth: { xs: 'auto', sm: 'auto' },
                 '&:hover': {
                   backgroundColor: 'rgba(76, 175, 80, 0.08)',
                 }
               }}
             >
-              Shared With Me
+              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+                Shared With Me
+              </Box>
             </Button>
           </Box>
         </Box>
@@ -123,8 +135,9 @@ function Navbar() {
               alignItems: 'center',
               position: 'relative',
             }}
-            onMouseEnter={() => setShowLogout(true)}
+            onMouseEnter={() => !isMobile && setShowLogout(true)}
             onMouseLeave={() => setShowLogout(false)}
+            onClick={() => isMobile && setShowLogout(!showLogout)}
           >
             <Box 
               sx={{ 
@@ -222,10 +235,11 @@ function Navbar() {
         >
           {({ TransitionProps }) => (
             <Grow {...TransitionProps}>
-              <Paper 
-                sx={{ 
+              <Paper
+                sx={{
                   mt: 1,
-                  minWidth: 250,
+                  minWidth: { xs: 200, sm: 250 },
+                  maxWidth: '90vw',
                   backgroundColor: 'background.paper',
                   borderRadius: '12px',
                   border: '1px solid',
