@@ -125,7 +125,7 @@ function SharedListsPage() {
                       }}
                     >
                       <CalendarIcon fontSize="small" />
-                      {new Date(list.event_date).toLocaleDateString()}
+                      {new Date(list.event_date.split('T')[0] + 'T12:00:00').toLocaleDateString()}
                     </Typography>
                   )}
 

@@ -296,7 +296,7 @@ function WishlistPage() {
             }}
           >
             <CalendarIcon />
-            {new Date(currentList.event_date).toLocaleDateString()}
+            {new Date(currentList.event_date.split('T')[0] + 'T12:00:00').toLocaleDateString()}
           </Typography>
         )}
       </Box>
