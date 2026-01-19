@@ -2,34 +2,31 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const Wishlist = require('../models/Wishlist');
+const ActivityLog = require('../models/ActivityLog');
 
 // Delete user and all associated data
 router.delete('/users/:userId', async (req, res) => {
   try {
     const userId = req.params.userId;
 
-    // Delete all user's lists and items
-    const lists = await List.find({ user: userId });
-    const listIds = lists.map(list => list._id);
-    
-    await WishlistItem.deleteMany({ list: { $in: listIds } });
-    await List.deleteMany({ user: userId });
+    // Delete all wishlists owned by the user (items are embedded, so they're deleted too)
+    await Wishlist.deleteMany({ user: userId });
 
-    // Delete sharing records
-    await SharedList.deleteMany({ 
-      $or: [
-        { owner: userId },
-        { sharedWith: userId }
-      ]
-    });
+    // Remove user from sharedWith arrays in other wishlists
+    await Wishlist.updateMany(
+      { sharedWith: userId },
+      { $pull: { sharedWith: userId } }
+    );
 
-    // Delete view records
-    await ListView.deleteMany({ 
-      $or: [
-        { user: userId },
-        { owner: userId }
-      ]
-    });
+    // Remove user's claims from all wishlist items
+    await Wishlist.updateMany(
+      { 'items.status.claimedBy': userId },
+      { $set: { 'items.$[item].status': {} } },
+      { arrayFilters: [{ 'item.status.claimedBy': userId }] }
+    );
+
+    // Delete activity logs where user is the causer
+    await ActivityLog.deleteMany({ causer: userId });
 
     // Finally delete the user
     await User.findByIdAndDelete(userId);
@@ -45,23 +42,34 @@ router.delete('/users/:userId', async (req, res) => {
 router.get('/users/:userId/stats', async (req, res) => {
   try {
     const userId = req.params.userId;
-    
-    const stats = await Promise.all([
-      User.findById(userId),
-      List.countDocuments({ user: userId }),
-      WishlistItem.countDocuments({ list: { $in: await List.find({ user: userId }).select('_id') } }),
-      SharedList.countDocuments({ owner: userId }),
-      SharedList.countDocuments({ sharedWith: userId }),
-      ListView.countDocuments({ user: userId })
-    ]);
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Get wishlists owned by user
+    const ownedWishlists = await Wishlist.find({ user: userId });
+
+    // Count total items across all owned wishlists
+    const itemCount = ownedWishlists.reduce((sum, wl) => sum + (wl.items?.length || 0), 0);
+
+    // Count wishlists shared by this user (owned and has sharedWith entries)
+    const sharedByMeCount = ownedWishlists.filter(wl => wl.sharedWith?.length > 0).length;
+
+    // Count wishlists shared with this user
+    const sharedWithMeCount = await Wishlist.countDocuments({ sharedWith: userId });
+
+    // Count activity logs for this user
+    const activityCount = await ActivityLog.countDocuments({ causer: userId });
 
     res.json({
-      user: stats[0],
-      listCount: stats[1],
-      itemCount: stats[2],
-      sharedByMeCount: stats[3],
-      sharedWithMeCount: stats[4],
-      viewCount: stats[5]
+      user,
+      listCount: ownedWishlists.length,
+      itemCount,
+      sharedByMeCount,
+      sharedWithMeCount,
+      activityCount
     });
   } catch (error) {
     console.error('Error getting user stats:', error);
@@ -69,4 +77,4 @@ router.get('/users/:userId/stats', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
