@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Grid,
   Button,
   Dialog,
   DialogTitle,
@@ -66,6 +65,7 @@ function WishlistPage() {
         setCurrentList(null, false);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [listId]);
 
   const handleEditItem = (item) => {

@@ -28,7 +28,6 @@ function ShareListDialog({ open, onClose, listId }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [sharedUsers, setSharedUsers] = useState([]);
-  const [loading, setLoading] = useState(false);
   const { currentList } = useList();
 
   useEffect(() => {
@@ -74,14 +73,11 @@ function ShareListDialog({ open, onClose, listId }) {
     }
 
     try {
-      setLoading(true);
       const data = await getSharedUsers(listId);
       setSharedUsers(data);
     } catch (error) {
       console.error('Error loading shared users:', error);
       setError('Failed to load shared users');
-    } finally {
-      setLoading(false);
     }
   }, [listId]);
 

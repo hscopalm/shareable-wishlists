@@ -76,11 +76,10 @@ function ListsPage() {
 
       if (editingList) {
         await updateList(editingList._id, formData);
-        await loadLists();
       } else {
-        const newList = await createList(formData);
-        await loadLists();
+        await createList(formData);
       }
+      await loadLists();
 
       setFormData({ name: '', description: '', event_date: '' });
       setEditingList(null);
