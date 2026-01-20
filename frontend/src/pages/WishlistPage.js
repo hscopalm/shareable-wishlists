@@ -266,6 +266,7 @@ function WishlistPage() {
             sx={{
               fontWeight: 700,
               fontSize: { xs: '1.75rem', sm: '2.25rem' },
+              pb: 0.5,
               background: `linear-gradient(135deg, ${colors.text.primary} 0%, ${colors.primary} 100%)`,
               backgroundClip: 'text',
               WebkitBackgroundClip: 'text',
