@@ -4,6 +4,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
+  TextField,
   Box,
   Typography,
   Avatar,
@@ -23,12 +25,13 @@ import {
   KeyboardArrowDown as ArrowDownIcon,
   CalendarMonth as CalendarIcon,
   Inventory2 as EmptyIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
 import { useList } from '../contexts/ListContext';
-import { deleteWishlistItem, fetchListItems, claimItem } from '../services/api';
+import { deleteWishlistItem, fetchListItems, claimItem, updateList } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { colors } from '../theme';
 
@@ -42,23 +45,26 @@ function WishlistPage() {
   const [editingItem, setEditingItem] = useState(null);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [editFormData, setEditFormData] = useState({ name: '', description: '', event_date: '' });
 
   const closeAllDialogs = useCallback(() => {
     setOpenAddDialog(false);
     setOpenShareDialog(false);
+    setOpenEditDialog(false);
     setEditingItem(null);
   }, []);
 
   useEffect(() => {
     const handlePopState = () => {
-      if (openAddDialog || openShareDialog) {
+      if (openAddDialog || openShareDialog || openEditDialog) {
         closeAllDialogs();
       }
     };
 
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, [openAddDialog, openShareDialog, closeAllDialogs]);
+  }, [openAddDialog, openShareDialog, openEditDialog, closeAllDialogs]);
 
   const openAddDialogWithHistory = useCallback((item = null) => {
     window.history.pushState({ dialog: 'add' }, '');
@@ -82,6 +88,37 @@ function WishlistPage() {
       window.history.back();
     }
   }, [openShareDialog]);
+
+  const openEditDialogWithHistory = useCallback(() => {
+    if (currentList) {
+      setEditFormData({
+        name: currentList.name || '',
+        description: currentList.description || '',
+        event_date: currentList.event_date || ''
+      });
+      window.history.pushState({ dialog: 'edit' }, '');
+      setOpenEditDialog(true);
+    }
+  }, [currentList]);
+
+  const closeEditDialog = useCallback(() => {
+    if (openEditDialog) {
+      window.history.back();
+    }
+  }, [openEditDialog]);
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (!editFormData.name.trim() || !currentList?._id) return;
+
+    try {
+      await updateList(currentList._id, editFormData);
+      closeEditDialog();
+      await loadItems();
+    } catch (error) {
+      console.error('Error updating list:', error);
+    }
+  };
 
   const loadItems = async (redirectOnError = false) => {
     try {
@@ -223,20 +260,37 @@ function WishlistPage() {
           },
         }}
       >
-        <Typography
-          variant="h3"
-          sx={{
-            fontWeight: 700,
-            fontSize: { xs: '1.75rem', sm: '2.25rem' },
-            mb: 2,
-            background: `linear-gradient(135deg, ${colors.text.primary} 0%, ${colors.primary} 100%)`,
-            backgroundClip: 'text',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-          }}
-        >
-          {currentList?.name}
-        </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', mb: 2 }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 700,
+              fontSize: { xs: '1.75rem', sm: '2.25rem' },
+              background: `linear-gradient(135deg, ${colors.text.primary} 0%, ${colors.primary} 100%)`,
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+            }}
+          >
+            {currentList?.name}
+          </Typography>
+          {!isSharedList && (
+            <Tooltip title="Edit list details">
+              <IconButton
+                onClick={openEditDialogWithHistory}
+                sx={{
+                  backgroundColor: alpha(colors.primary, 0.1),
+                  border: `1px solid ${alpha(colors.primary, 0.2)}`,
+                  '&:hover': {
+                    backgroundColor: alpha(colors.primary, 0.2),
+                  },
+                }}
+              >
+                <EditIcon sx={{ color: colors.primary }} />
+              </IconButton>
+            </Tooltip>
+          )}
+        </Box>
 
         {currentList?.user && (
           <Box display="flex" alignItems="center">
@@ -478,6 +532,70 @@ function WishlistPage() {
         onClose={closeShareDialog}
         listId={currentList?._id}
       />
+
+      {/* Edit List Dialog */}
+      <Dialog
+        open={openEditDialog}
+        onClose={closeEditDialog}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: '20px' },
+        }}
+      >
+        <form onSubmit={handleEditSubmit}>
+          <DialogTitle>Edit List</DialogTitle>
+          <DialogContent>
+            <Box sx={{ pt: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <TextField
+                autoFocus
+                label="List Name"
+                fullWidth
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                required
+                placeholder="e.g., Birthday Wishlist"
+              />
+              <TextField
+                label="Description"
+                fullWidth
+                multiline
+                rows={3}
+                value={editFormData.description}
+                onChange={(e) => setEditFormData({ ...editFormData, description: e.target.value })}
+                placeholder="What's this list for?"
+              />
+              <TextField
+                label="Event Date"
+                type="date"
+                fullWidth
+                value={editFormData.event_date ? new Date(editFormData.event_date).toISOString().split('T')[0] : ''}
+                onChange={(e) => setEditFormData({ ...editFormData, event_date: e.target.value })}
+                InputLabelProps={{ shrink: true }}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ px: 3, pb: 3 }}>
+            <Button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                closeEditDialog();
+              }}
+              sx={{ color: colors.text.secondary }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={!editFormData.name.trim()}
+            >
+              Save Changes
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </Box>
   );
 }
