@@ -8,10 +8,21 @@ import {
   Select,
   MenuItem,
   InputAdornment,
+  Typography,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
-import { createWishlistItem, updateWishlistItem } from '../services/api';
+import EditIcon from '@mui/icons-material/Edit';
+import LinkIcon from '@mui/icons-material/Link';
+import { createWishlistItem, updateWishlistItem, scrapeUrl } from '../services/api';
 
 function WishlistForm({ listId, initialData, onSubmit }) {
+  // Mode: 'choice' | 'manual' | 'link' | 'form'
+  const [mode, setMode] = useState(initialData ? 'form' : 'choice');
+  const [urlInput, setUrlInput] = useState('');
+  const [fetching, setFetching] = useState(false);
+  const [fetchError, setFetchError] = useState('');
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -34,6 +45,7 @@ function WishlistForm({ listId, initialData, onSubmit }) {
         imageUrl: initialData.imageUrl || '',
         notes: initialData.notes || '',
       });
+      setMode('form');
     }
   }, [initialData]);
 
@@ -43,6 +55,35 @@ function WishlistForm({ listId, initialData, onSubmit }) {
       ...formData,
       [name]: name === 'price' ? parseFloat(value) || '' : value,
     });
+  };
+
+  const handleFetchUrl = async () => {
+    if (!urlInput.trim()) {
+      setFetchError('Please enter a URL');
+      return;
+    }
+
+    setFetching(true);
+    setFetchError('');
+
+    try {
+      const metadata = await scrapeUrl(urlInput.trim());
+      setFormData({
+        ...formData,
+        title: metadata.title || formData.title,
+        imageUrl: metadata.imageUrl || formData.imageUrl,
+        price: metadata.price || formData.price,
+        link: metadata.link || urlInput.trim(),
+      });
+      setMode('form');
+    } catch (error) {
+      console.error('Error fetching URL:', error);
+      setFetchError(
+        error.response?.data?.message || 'Failed to fetch product information. You can still add the item manually.'
+      );
+    } finally {
+      setFetching(false);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -67,6 +108,105 @@ function WishlistForm({ listId, initialData, onSubmit }) {
     }
   };
 
+  const handleManualMode = () => {
+    setMode('form');
+  };
+
+  const handleLinkMode = () => {
+    setMode('link');
+  };
+
+  const handleBackToChoice = () => {
+    setMode('choice');
+    setUrlInput('');
+    setFetchError('');
+  };
+
+  // Choice screen - Manual vs Link
+  if (mode === 'choice') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+        <Typography variant="body1" color="text.secondary" sx={{ mb: 1 }}>
+          How would you like to add this item?
+        </Typography>
+        <Button
+          variant="outlined"
+          size="large"
+          startIcon={<EditIcon />}
+          onClick={handleManualMode}
+          sx={{ justifyContent: 'flex-start', py: 2, px: 3 }}
+        >
+          Add Manually
+        </Button>
+        <Button
+          variant="outlined"
+          size="large"
+          startIcon={<LinkIcon />}
+          onClick={handleLinkMode}
+          sx={{ justifyContent: 'flex-start', py: 2, px: 3 }}
+        >
+          Add from Link
+        </Button>
+      </Box>
+    );
+  }
+
+  // Link input screen
+  if (mode === 'link') {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 1 }}>
+        <Typography variant="body1" color="text.secondary">
+          Paste a product URL to auto-fill item details
+        </Typography>
+        <TextField
+          label="Product URL"
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          fullWidth
+          placeholder="https://amazon.com/..."
+          disabled={fetching}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              handleFetchUrl();
+            }
+          }}
+        />
+        {fetchError && (
+          <Alert severity="warning" onClose={() => setFetchError('')}>
+            {fetchError}
+          </Alert>
+        )}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="text"
+            onClick={handleBackToChoice}
+            disabled={fetching}
+          >
+            Back
+          </Button>
+          <Button
+            variant="text"
+            onClick={handleManualMode}
+            disabled={fetching}
+          >
+            Skip, add manually
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button
+            variant="contained"
+            onClick={handleFetchUrl}
+            disabled={fetching || !urlInput.trim()}
+            startIcon={fetching ? <CircularProgress size={20} color="inherit" /> : null}
+          >
+            {fetching ? 'Fetching...' : 'Fetch Details'}
+          </Button>
+        </Box>
+      </Box>
+    );
+  }
+
+  // Form screen (manual entry or pre-populated from URL)
   return (
     <form onSubmit={handleSubmit}>
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
@@ -145,7 +285,16 @@ function WishlistForm({ listId, initialData, onSubmit }) {
             </Select>
           </FormControl>
         </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', pt: 1 }}>
+          {!initialData && (
+            <Button
+              variant="text"
+              onClick={handleBackToChoice}
+            >
+              Back
+            </Button>
+          )}
+          <Box sx={{ flex: 1 }} />
           <Button
             type="submit"
             variant="contained"

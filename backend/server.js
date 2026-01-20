@@ -31,6 +31,7 @@ const wishlistRoutes = require('./routes/wishlist');
 const sharingRoutes = require('./routes/sharing');
 const adminRoutes = require('./routes/admin');
 const listRoutes = require('./routes/lists');
+const scrapeRoutes = require('./routes/scrape');
 
 // Health check endpoint for ALB - improved with connection checks
 app.get('/health', async (req, res) => {
@@ -103,6 +104,7 @@ const startServer = async () => {
     app.use('/api', requireAuth, sharingRoutes);
     app.use('/api/admin', requireAuth, adminRoutes);
     app.use('/api/lists', requireAuth, listRoutes);
+    app.use('/api/scrape', requireAuth, scrapeRoutes);
 
     // Start listening only after everything is initialized
     const PORT = process.env.PORT || 5000;

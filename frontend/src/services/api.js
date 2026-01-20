@@ -76,3 +76,8 @@ export const claimItem = async (listId, itemId) => {
   const response = await api.post(`/api/share/claim/${listId}/${itemId}`, {});
   return response.data;
 };
+
+export const scrapeUrl = async (url) => {
+  const response = await api.post('/api/scrape/url', { url });
+  return response.data;
+};

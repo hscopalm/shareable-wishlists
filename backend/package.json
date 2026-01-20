@@ -16,6 +16,7 @@
     "express-session": "^1.18.0",
     "mongoose": "^7.0.3",
     "nodemailer": "^7.0.12",
+    "open-graph-scraper": "^6.8.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"
   },
