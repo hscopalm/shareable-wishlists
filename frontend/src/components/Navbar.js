@@ -18,7 +18,6 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   ViewList as ListIcon,
-  AutoAwesome as GiftIcon,
   PeopleAlt as PeopleIcon,
   Logout as LogoutIcon,
   KeyboardArrowDown as ArrowDownIcon,
@@ -94,20 +93,16 @@ function Navbar() {
           >
             <Box
               className="logo-icon"
+              component="img"
+              src="/logo.png"
+              alt="Gift Guru"
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
                 width: 40,
                 height: 40,
-                borderRadius: '12px',
-                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
                 mr: 1.5,
                 transition: 'transform 0.3s ease-in-out',
               }}
-            >
-              <GiftIcon sx={{ color: '#fff', fontSize: 22 }} />
-            </Box>
+            />
             <Typography
               variant="h6"
               sx={{

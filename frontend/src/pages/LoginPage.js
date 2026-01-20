@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, Button, Typography, alpha } from '@mui/material';
-import { Google as GoogleIcon, AutoAwesome as GiftIcon } from '@mui/icons-material';
+import { Google as GoogleIcon } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme';
 
@@ -64,20 +64,15 @@ function LoginPage() {
       >
         {/* Logo */}
         <Box
+          component="img"
+          src="/logo.png"
+          alt="Gift Guru"
           sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 72,
-            height: 72,
-            borderRadius: '20px',
-            background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+            width: 96,
+            height: 96,
             mb: 3,
-            boxShadow: `0 10px 40px ${alpha(colors.primary, 0.4)}`,
           }}
-        >
-          <GiftIcon sx={{ color: '#fff', fontSize: 36 }} />
-        </Box>
+        />
 
         {/* Title */}
         <Typography
