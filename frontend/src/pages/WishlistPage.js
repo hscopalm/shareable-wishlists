@@ -5,23 +5,24 @@ import {
   DialogTitle,
   DialogContent,
   Box,
-  SpeedDial,
   Typography,
   Avatar,
-  Paper,
   IconButton,
   Tooltip,
+  Fab,
+  alpha,
 } from '@mui/material';
 import Masonry from '@mui/lab/Masonry';
 import {
   Add as AddIcon,
-  Share as ShareIcon,
-  AccessTime as TimeIcon,
-  PriorityHigh as PriorityIcon,
-  AttachMoney as PriceIcon,
-  ArrowUpward as ArrowUpIcon,
-  ArrowDownward as ArrowDownIcon,
-  Event as CalendarIcon,
+  IosShare as ShareIcon,
+  Schedule as TimeIcon,
+  TrendingUp as PriorityIcon,
+  Payments as PriceIcon,
+  KeyboardArrowUp as ArrowUpIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  CalendarMonth as CalendarIcon,
+  Inventory2 as EmptyIcon,
 } from '@mui/icons-material';
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
@@ -29,6 +30,7 @@ import ShareListDialog from '../components/ShareListDialog';
 import { useList } from '../contexts/ListContext';
 import { deleteWishlistItem, fetchListItems, claimItem } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
+import { colors } from '../theme';
 
 function WishlistPage() {
   const { id: listId } = useParams();
@@ -41,14 +43,12 @@ function WishlistPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
 
-  // Close dialogs when back button is pressed
   const closeAllDialogs = useCallback(() => {
     setOpenAddDialog(false);
     setOpenShareDialog(false);
     setEditingItem(null);
   }, []);
 
-  // Handle browser back button for dialogs
   useEffect(() => {
     const handlePopState = () => {
       if (openAddDialog || openShareDialog) {
@@ -60,7 +60,6 @@ function WishlistPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [openAddDialog, openShareDialog, closeAllDialogs]);
 
-  // Push history state when dialog opens
   const openAddDialogWithHistory = useCallback((item = null) => {
     window.history.pushState({ dialog: 'add' }, '');
     setEditingItem(item);
@@ -72,7 +71,6 @@ function WishlistPage() {
     setOpenShareDialog(true);
   }, []);
 
-  // Close dialog and go back in history
   const closeAddDialog = useCallback(() => {
     if (openAddDialog) {
       window.history.back();
@@ -103,7 +101,6 @@ function WishlistPage() {
       loadItems(true);
     }
 
-    // Cleanup shared list state
     return () => {
       if (isSharedList) {
         setCurrentList(null, false);
@@ -163,28 +160,27 @@ function WishlistPage() {
         <IconButton
           onClick={() => handleSort(field)}
           sx={{
-            backgroundColor: isActive ? 'rgba(76, 175, 80, 0.1)' : 'transparent',
-            borderRadius: '8px',
+            backgroundColor: isActive ? alpha(colors.primary, 0.15) : 'transparent',
+            border: `1px solid ${isActive ? alpha(colors.primary, 0.3) : 'transparent'}`,
+            borderRadius: '10px',
             transition: 'all 0.2s ease-in-out',
+            px: 1.5,
             '&:hover': {
-              backgroundColor: isActive ? 'rgba(76, 175, 80, 0.2)' : 'rgba(255, 255, 255, 0.1)',
+              backgroundColor: alpha(colors.primary, 0.1),
             },
-            mr: { xs: 0.5, sm: 1 },
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Icon
-              sx={{
-                color: isActive ? 'primary.main' : 'text.secondary',
-                mr: 0.5
-              }}
-            />
-            {isActive && (
-              sortDirection === 'asc' ? 
-                <ArrowUpIcon sx={{ color: 'primary.main', fontSize: '1rem' }} /> :
-                <ArrowDownIcon sx={{ color: 'primary.main', fontSize: '1rem' }} />
-            )}
-          </Box>
+          <Icon
+            sx={{
+              color: isActive ? colors.primary : colors.text.secondary,
+              fontSize: 20,
+            }}
+          />
+          {isActive && (
+            sortDirection === 'asc' ?
+              <ArrowUpIcon sx={{ color: colors.primary, fontSize: 16, ml: 0.25 }} /> :
+              <ArrowDownIcon sx={{ color: colors.primary, fontSize: 16, ml: 0.25 }} />
+          )}
         </IconButton>
       </Tooltip>
     );
@@ -193,122 +189,134 @@ function WishlistPage() {
   const handleClaimItem = async (item) => {
     try {
       const updatedItem = await claimItem(listId, item._id);
-      // Update the items list with the new claim status
-      setItems(prevItems => 
-        prevItems.map(i => 
+      setItems(prevItems =>
+        prevItems.map(i =>
           i._id === item._id ? { ...i, status: updatedItem.status } : i
         )
       );
     } catch (error) {
       console.error('Error claiming item:', error);
-      // You might want to show an error message to the user here
     }
   };
 
   return (
     <Box>
+      {/* Hero Section */}
       <Box
-        mb={4}
         sx={{
-          backgroundColor: 'rgba(46, 52, 64, 0.3)',
-          borderRadius: '12px',
-          padding: { xs: '16px', sm: '24px' },
-          border: '1px solid rgba(255, 255, 255, 0.1)',
+          position: 'relative',
+          mb: 4,
+          p: { xs: 3, sm: 4 },
+          borderRadius: '20px',
+          background: `linear-gradient(135deg, ${alpha(colors.primary, 0.1)} 0%, ${alpha(colors.secondary, 0.05)} 100%)`,
+          border: `1px solid ${colors.border}`,
+          overflow: 'hidden',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '40%',
+            height: '100%',
+            background: `radial-gradient(circle at 100% 0%, ${alpha(colors.primary, 0.15)} 0%, transparent 70%)`,
+            pointerEvents: 'none',
+          },
         }}
       >
-        <Typography 
-          variant="h4" 
-          component="h1" 
+        <Typography
+          variant="h3"
           sx={{
-            fontWeight: 600,
-            color: 'primary.main',
-            mb: 2
+            fontWeight: 700,
+            fontSize: { xs: '1.75rem', sm: '2.25rem' },
+            mb: 2,
+            background: `linear-gradient(135deg, ${colors.text.primary} 0%, ${colors.primary} 100%)`,
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
           }}
         >
           {currentList?.name}
         </Typography>
-        
+
         {currentList?.user && (
-          <Box 
-            display="flex" 
-            alignItems="center" 
-            mb={currentList?.description ? 3 : 0}
-          >
-            <Avatar 
-              src={currentList.user.picture} 
+          <Box display="flex" alignItems="center">
+            <Avatar
+              src={currentList.user.picture}
               alt={currentList.user.name}
-              sx={{ 
-                mr: 2, 
-                width: 36, 
-                height: 36,
-                border: '2px solid',
-                borderColor: 'primary.main',
+              sx={{
+                width: 44,
+                height: 44,
+                mr: 1.5,
+                border: `2px solid ${colors.primary}`,
               }}
             >
               {currentList.user.name?.[0] || '?'}
             </Avatar>
             <Box>
-              <Typography 
-                variant="subtitle1" 
-                sx={{ 
-                  fontWeight: 500,
-                  color: 'text.primary',
-                }}
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 600, lineHeight: 1.2 }}
               >
                 {currentList.user.name || 'Unknown User'}
               </Typography>
-              <Typography 
-                variant="caption" 
-                color="text.secondary"
-              >
+              <Typography variant="caption" color="text.secondary">
                 List Owner
               </Typography>
             </Box>
           </Box>
         )}
-        
+
         {currentList?.description && (
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              color: 'text.secondary',
-              mt: 2,
-              borderLeft: '2px solid',
-              borderColor: 'primary.main',
+          <Typography
+            variant="body1"
+            sx={{
+              color: colors.text.secondary,
+              mt: 2.5,
               pl: 2,
+              borderLeft: `3px solid ${colors.primary}`,
+              fontStyle: 'italic',
             }}
           >
             {currentList.description}
           </Typography>
         )}
+
         {currentList?.event_date && (
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              color: 'text.secondary',
-              mt: 2,
-              borderLeft: '2px solid',
-              borderColor: 'primary.main',
-              pl: 2,
-              display: 'flex',
+          <Box
+            sx={{
+              display: 'inline-flex',
               alignItems: 'center',
-              gap: 1
+              gap: 1,
+              mt: 3,
+              px: 2,
+              py: 1,
+              borderRadius: '10px',
+              backgroundColor: alpha(colors.primary, 0.1),
+              border: `1px solid ${alpha(colors.primary, 0.2)}`,
             }}
           >
-            <CalendarIcon />
-            {new Date(currentList.event_date.split('T')[0] + 'T12:00:00').toLocaleDateString()}
-          </Typography>
+            <CalendarIcon sx={{ color: colors.primary, fontSize: 20 }} />
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
+              {new Date(currentList.event_date.split('T')[0] + 'T12:00:00').toLocaleDateString('en-US', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              })}
+            </Typography>
+          </Box>
         )}
       </Box>
 
-      <Box 
-        sx={{ 
-          mb: 3, 
-          display: 'flex', 
+      {/* Action Bar */}
+      <Box
+        sx={{
+          mb: 3,
+          display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           gap: 2,
-          flexWrap: 'wrap'
+          flexWrap: 'wrap',
         }}
       >
         {!isSharedList && (
@@ -316,76 +324,140 @@ function WishlistPage() {
             variant="contained"
             startIcon={<AddIcon />}
             onClick={() => openAddDialogWithHistory()}
-            color="primary"
             sx={{ minWidth: 'fit-content' }}
           >
             Add Item
           </Button>
         )}
 
-        <Paper
-          elevation={0}
+        <Box
           sx={{
             display: 'flex',
             alignItems: 'center',
-            p: 1,
-            backgroundColor: 'rgba(46, 52, 64, 0.3)',
-            borderRadius: '12px',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            ml: 'auto', // This pushes the sort controls to the right
+            gap: 1,
+            p: 0.75,
+            backgroundColor: alpha(colors.background.elevated, 0.5),
+            borderRadius: '14px',
+            border: `1px solid ${colors.border}`,
+            ml: 'auto',
           }}
         >
-          <Typography variant="body2" color="text.secondary" sx={{ mr: 2, display: { xs: 'none', sm: 'block' } }}>
-            Sort by:
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ px: 1, display: { xs: 'none', sm: 'block' } }}
+          >
+            Sort:
           </Typography>
           <SortButton field="createdAt" icon={TimeIcon} label="Date Added" />
           <SortButton field="priority" icon={PriorityIcon} label="Priority" />
           <SortButton field="price" icon={PriceIcon} label="Price" />
-        </Paper>
+        </Box>
       </Box>
 
+      {/* Items Grid */}
       <Box sx={{ width: '100%' }}>
-        <Masonry
-          columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
-          spacing={2}
-          defaultHeight={450}
-          defaultColumns={4}
-          defaultSpacing={2}
-        >
-          {getSortedItems().map((item) => (
-            <WishlistItem 
-              key={item._id}
-              item={item} 
-              onEdit={!isSharedList ? handleEditItem : undefined}
-              onDelete={!isSharedList ? handleDeleteItem : undefined}
-              onClaim={isSharedList ? handleClaimItem : undefined}
-              isSharedList={isSharedList}
+        {items.length > 0 ? (
+          <Masonry
+            columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
+            spacing={2}
+            defaultHeight={450}
+            defaultColumns={4}
+            defaultSpacing={2}
+          >
+            {getSortedItems().map((item) => (
+              <WishlistItem
+                key={item._id}
+                item={item}
+                onEdit={!isSharedList ? handleEditItem : undefined}
+                onDelete={!isSharedList ? handleDeleteItem : undefined}
+                onClaim={isSharedList ? handleClaimItem : undefined}
+                isSharedList={isSharedList}
+              />
+            ))}
+          </Masonry>
+        ) : (
+          <Box
+            sx={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              py: 8,
+              px: 4,
+              borderRadius: '20px',
+              backgroundColor: alpha(colors.background.elevated, 0.3),
+              border: `1px dashed ${colors.border}`,
+            }}
+          >
+            <EmptyIcon
+              sx={{
+                fontSize: 64,
+                color: colors.text.muted,
+                mb: 2,
+                opacity: 0.5,
+              }}
             />
-          ))}
-        </Masonry>
-        {items.length === 0 && (
-          <Typography color="text.secondary" align="center">
-            No items in this wishlist
-          </Typography>
+            <Typography
+              variant="h6"
+              color="text.secondary"
+              sx={{ mb: 1, fontWeight: 500 }}
+            >
+              No items yet
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              {isSharedList
+                ? "This wishlist is empty"
+                : "Start adding items to your wishlist"
+              }
+            </Typography>
+            {!isSharedList && (
+              <Button
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={() => openAddDialogWithHistory()}
+              >
+                Add your first item
+              </Button>
+            )}
+          </Box>
         )}
       </Box>
 
+      {/* Share FAB */}
       {!isSharedList && (
-        <SpeedDial
-          ariaLabel="share"
-          sx={{ position: 'fixed', bottom: 16, right: 16 }}
-          icon={<ShareIcon />}
+        <Fab
           onClick={openShareDialogWithHistory}
-        />
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+            boxShadow: `0 8px 30px ${alpha(colors.primary, 0.4)}`,
+            '&:hover': {
+              background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.secondary} 100%)`,
+              transform: 'scale(1.05)',
+            },
+            transition: 'all 0.2s ease-in-out',
+          }}
+        >
+          <ShareIcon />
+        </Fab>
       )}
 
+      {/* Add/Edit Dialog */}
       <Dialog
         open={openAddDialog}
         onClose={closeAddDialog}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+          },
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ pb: 1 }}>
           {editingItem ? 'Edit Item' : 'Add New Item'}
         </DialogTitle>
         <DialogContent>
@@ -400,6 +472,7 @@ function WishlistPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Share Dialog */}
       <ShareListDialog
         open={openShareDialog}
         onClose={closeShareDialog}
@@ -409,4 +482,4 @@ function WishlistPage() {
   );
 }
 
-export default WishlistPage; 
+export default WishlistPage;

@@ -9,211 +9,224 @@ import {
   MenuItem,
   ListItemIcon,
   ListItemText,
-  Popper,
   Paper,
-  Grow,
-  Divider,
   useMediaQuery,
   useTheme,
+  alpha,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { useList } from '../contexts/ListContext';
-import { 
-  List as ListIcon,
-  CardGiftcard as GiftIcon,
-  People as PeopleIcon,
+import {
+  ViewList as ListIcon,
+  AutoAwesome as GiftIcon,
+  PeopleAlt as PeopleIcon,
   Logout as LogoutIcon,
+  KeyboardArrowDown as ArrowDownIcon,
 } from '@mui/icons-material';
+import { colors } from '../theme';
 
 function Navbar() {
   const { user, logout } = useAuth();
-  const { lists } = useList();
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [listsAnchorEl, setListsAnchorEl] = useState(null);
   const [showLogout, setShowLogout] = useState(false);
 
-  const handleListsMouseEnter = (event) => {
-    if (!isMobile) {
-      setListsAnchorEl(event.currentTarget);
-    }
+  const isActive = (path) => {
+    if (path === '/') return location.pathname === '/';
+    return location.pathname.startsWith(path);
   };
 
-  const handleListsMouseLeave = () => {
-    setListsAnchorEl(null);
+  const NavButton = ({ icon: Icon, label, path }) => {
+    const active = isActive(path);
+    return (
+      <Button
+        onClick={() => navigate(path)}
+        sx={{
+          px: { xs: 1.5, sm: 2.5 },
+          py: 1,
+          borderRadius: '12px',
+          color: active ? colors.text.primary : colors.text.secondary,
+          backgroundColor: active ? alpha(colors.primary, 0.15) : 'transparent',
+          border: active ? `1px solid ${alpha(colors.primary, 0.3)}` : '1px solid transparent',
+          transition: 'all 0.2s ease-in-out',
+          '&:hover': {
+            backgroundColor: alpha(colors.primary, 0.1),
+            color: colors.text.primary,
+          },
+        }}
+      >
+        <Icon sx={{ fontSize: 20, mr: { xs: 0, sm: 1 } }} />
+        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' }, fontWeight: 500 }}>
+          {label}
+        </Box>
+      </Button>
+    );
   };
-
-  const handleListClick = (list) => {
-    setListsAnchorEl(null);
-    navigate(`/list/${list._id}`);
-  };
-
-  const recentLists = lists.slice(0, 5);
-  const open = Boolean(listsAnchorEl);
 
   return (
-    <AppBar 
-      position="static" 
-      sx={{ 
-        backgroundColor: 'background.paper',
-        borderBottom: '1px solid',
-        borderColor: 'divider',
-        boxShadow: 'none',
+    <AppBar
+      position="sticky"
+      elevation={0}
+      sx={{
+        backgroundColor: alpha(colors.background.main, 0.8),
+        backdropFilter: 'blur(20px)',
+        borderBottom: `1px solid ${colors.border}`,
       }}
     >
-      <Toolbar sx={{ justifyContent: 'space-between', gap: { xs: 1, sm: 4 } }}>
-        {/* Logo and Navigation Links - now grouped together */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 3 } }}>
-          {/* Logo and Brand */}
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <GiftIcon sx={{ color: 'primary.main', mr: 1, fontSize: 28 }} />
-            <Typography 
-              variant="h6" 
-              component="div" 
-              sx={{ 
-                fontWeight: 600,
-                color: 'text.primary',
-                letterSpacing: '0.5px',
+      <Toolbar sx={{ justifyContent: 'space-between', gap: 2, py: 1 }}>
+        {/* Logo and Navigation */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, sm: 4 } }}>
+          {/* Logo */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              cursor: 'pointer',
+              '&:hover': {
+                '& .logo-icon': {
+                  transform: 'rotate(15deg) scale(1.1)',
+                },
+              },
+            }}
+            onClick={() => navigate('/')}
+          >
+            <Box
+              className="logo-icon"
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: '12px',
+                background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`,
+                mr: 1.5,
+                transition: 'transform 0.3s ease-in-out',
+              }}
+            >
+              <GiftIcon sx={{ color: '#fff', fontSize: 22 }} />
+            </Box>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                background: `linear-gradient(135deg, ${colors.text.primary} 0%, ${colors.text.secondary} 100%)`,
+                backgroundClip: 'text',
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                letterSpacing: '-0.02em',
+                display: { xs: 'none', md: 'block' },
               }}
             >
               Gift Guru
             </Typography>
           </Box>
-          
-          {/* Navigation Links - moved here and updated typography */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, sm: 1 } }}>
-            <Button
-              color="inherit"
-              startIcon={<ListIcon />}
-              onMouseEnter={handleListsMouseEnter}
-              onClick={() => navigate('/')}
-              sx={{
-                borderRadius: '8px',
-                px: { xs: 1, sm: 2 },
-                fontSize: '1rem',
-                fontWeight: 500,
-                minWidth: { xs: 'auto', sm: 'auto' },
-                '&:hover': {
-                  backgroundColor: 'rgba(76, 175, 80, 0.08)',
-                }
-              }}
-            >
-              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                My Lists
-              </Box>
-            </Button>
 
-            <Button
-              color="inherit"
-              startIcon={<PeopleIcon />}
-              onClick={() => navigate('/shared')}
-              sx={{
-                borderRadius: '8px',
-                px: { xs: 1, sm: 2 },
-                fontSize: '1rem',
-                fontWeight: 500,
-                minWidth: { xs: 'auto', sm: 'auto' },
-                '&:hover': {
-                  backgroundColor: 'rgba(76, 175, 80, 0.08)',
-                }
-              }}
-            >
-              <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                Shared With Me
-              </Box>
-            </Button>
+          {/* Navigation */}
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <NavButton icon={ListIcon} label="My Lists" path="/" />
+            <NavButton icon={PeopleIcon} label="Shared With Me" path="/shared" />
           </Box>
         </Box>
 
-        {/* User Section - updated typography */}
+        {/* User Section */}
         {user && (
-          <Box 
-            sx={{ 
-              display: 'flex', 
-              alignItems: 'center',
-              position: 'relative',
-            }}
+          <Box
+            sx={{ position: 'relative' }}
             onMouseEnter={() => !isMobile && setShowLogout(true)}
             onMouseLeave={() => setShowLogout(false)}
             onClick={() => isMobile && setShowLogout(!showLogout)}
           >
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
-                gap: 1,
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1.5,
                 cursor: 'pointer',
-                padding: '8px',
-                borderRadius: '8px',
+                py: 0.75,
+                px: 1.5,
+                borderRadius: '14px',
+                border: `1px solid ${showLogout ? alpha(colors.primary, 0.3) : 'transparent'}`,
+                backgroundColor: showLogout ? alpha(colors.primary, 0.1) : 'transparent',
                 transition: 'all 0.2s ease-in-out',
-                backgroundColor: showLogout ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                '&:hover': {
+                  backgroundColor: alpha(colors.primary, 0.1),
+                },
               }}
             >
               <Avatar
                 src={user?.picture}
                 alt={user?.name || 'User'}
-                imgProps={{ 
-                  referrerPolicy: "no-referrer"
-                }}
-                sx={{ 
-                  width: 36, 
+                imgProps={{ referrerPolicy: "no-referrer" }}
+                sx={{
+                  width: 36,
                   height: 36,
-                  border: '2px solid',
-                  borderColor: 'primary.main',
+                  border: `2px solid ${colors.primary}`,
                 }}
               >
                 {user?.name?.[0] || '?'}
               </Avatar>
               <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    fontWeight: 500,
-                    fontSize: '1rem',
-                  }}
+                <Typography
+                  variant="body2"
+                  sx={{ fontWeight: 600, lineHeight: 1.2 }}
                 >
                   {user.name}
                 </Typography>
               </Box>
+              <ArrowDownIcon
+                sx={{
+                  fontSize: 18,
+                  color: colors.text.secondary,
+                  transform: showLogout ? 'rotate(180deg)' : 'rotate(0)',
+                  transition: 'transform 0.2s ease-in-out',
+                  display: { xs: 'none', sm: 'block' },
+                }}
+              />
             </Box>
 
+            {/* Logout Dropdown */}
             <Box
               sx={{
                 position: 'absolute',
                 top: '100%',
                 right: 0,
-                mt: 0.5,
+                mt: 1,
                 opacity: showLogout ? 1 : 0,
                 visibility: showLogout ? 'visible' : 'hidden',
-                transform: showLogout ? 'translateY(0)' : 'translateY(-10px)',
+                transform: showLogout ? 'translateY(0)' : 'translateY(-8px)',
                 transition: 'all 0.2s ease-in-out',
+                zIndex: 100,
               }}
             >
               <Paper
-                elevation={4}
                 sx={{
-                  borderRadius: '8px',
+                  backgroundColor: colors.background.elevated,
+                  border: `1px solid ${colors.border}`,
+                  borderRadius: '12px',
                   overflow: 'hidden',
+                  minWidth: 150,
+                  boxShadow: `0 10px 40px ${alpha('#000', 0.4)}`,
                 }}
               >
-                <MenuItem 
+                <MenuItem
                   onClick={logout}
-                  sx={{ 
-                    py: 1,
+                  sx={{
+                    py: 1.5,
                     px: 2,
-                    color: 'error.main',
+                    color: colors.error,
                     '&:hover': {
-                      backgroundColor: 'rgba(244, 67, 54, 0.08)',
+                      backgroundColor: alpha(colors.error, 0.1),
                     }
                   }}
                 >
                   <ListItemIcon>
-                    <LogoutIcon sx={{ color: 'error.main' }} />
+                    <LogoutIcon sx={{ color: colors.error, fontSize: 20 }} />
                   </ListItemIcon>
-                  <ListItemText 
-                    primary="Logout"
+                  <ListItemText
+                    primary="Sign out"
                     primaryTypographyProps={{
                       variant: 'body2',
                       fontWeight: 500
@@ -224,78 +237,9 @@ function Navbar() {
             </Box>
           </Box>
         )}
-
-        {/* Lists Dropdown */}
-        <Popper
-          open={open}
-          anchorEl={listsAnchorEl}
-          placement="bottom-start"
-          transition
-          onMouseLeave={handleListsMouseLeave}
-        >
-          {({ TransitionProps }) => (
-            <Grow {...TransitionProps}>
-              <Paper
-                sx={{
-                  mt: 1,
-                  minWidth: { xs: 200, sm: 250 },
-                  maxWidth: '90vw',
-                  backgroundColor: 'background.paper',
-                  borderRadius: '12px',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.1)',
-                }}
-              >
-                {recentLists.map((list) => (
-                  <MenuItem 
-                    key={list._id}
-                    onClick={() => handleListClick(list)}
-                    sx={{ 
-                      py: 1.5,
-                      '&:hover': {
-                        backgroundColor: 'rgba(76, 175, 80, 0.08)',
-                      }
-                    }}
-                  >
-                    <ListItemIcon>
-                      <ListIcon sx={{ color: 'primary.main' }} />
-                    </ListItemIcon>
-                    <ListItemText 
-                      primary={list.name}
-                      primaryTypographyProps={{
-                        variant: 'body2',
-                        fontWeight: 500
-                      }}
-                    />
-                  </MenuItem>
-                ))}
-                <Divider sx={{ my: 1 }} />
-                <MenuItem 
-                  onClick={() => navigate('/')}
-                  sx={{ 
-                    py: 1.5,
-                    color: 'primary.main',
-                    '&:hover': {
-                      backgroundColor: 'rgba(76, 175, 80, 0.08)',
-                    }
-                  }}
-                >
-                  <ListItemText 
-                    primary="View All Lists"
-                    primaryTypographyProps={{
-                      variant: 'body2',
-                      fontWeight: 500
-                    }}
-                  />
-                </MenuItem>
-              </Paper>
-            </Grow>
-          )}
-        </Popper>
       </Toolbar>
     </AppBar>
   );
 }
 
-export default React.memo(Navbar); 
+export default React.memo(Navbar);

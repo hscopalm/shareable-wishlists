@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import {
   TextField,
   Button,
-  Stack,
+  Box,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
-  DialogActions,
   InputAdornment,
 } from '@mui/material';
 import { createWishlistItem, updateWishlistItem } from '../services/api';
@@ -70,14 +69,15 @@ function WishlistForm({ listId, initialData, onSubmit }) {
 
   return (
     <form onSubmit={handleSubmit}>
-      <Stack spacing={2} sx={{ p: { xs: 1, sm: 2 } }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5, pt: 1 }}>
         <TextField
           name="title"
-          label="Title"
+          label="Item Name"
           value={formData.title}
           onChange={handleChange}
           required
           fullWidth
+          placeholder="What do you want?"
         />
         <TextField
           name="description"
@@ -87,13 +87,15 @@ function WishlistForm({ listId, initialData, onSubmit }) {
           multiline
           rows={2}
           fullWidth
+          placeholder="Add more details about this item"
         />
         <TextField
           name="link"
-          label="Link"
+          label="Product Link"
           value={formData.link}
           onChange={handleChange}
           fullWidth
+          placeholder="https://..."
         />
         <TextField
           name="imageUrl"
@@ -101,6 +103,7 @@ function WishlistForm({ listId, initialData, onSubmit }) {
           value={formData.imageUrl}
           onChange={handleChange}
           fullWidth
+          placeholder="https://..."
         />
         <TextField
           name="notes"
@@ -110,41 +113,51 @@ function WishlistForm({ listId, initialData, onSubmit }) {
           multiline
           rows={2}
           fullWidth
+          placeholder="Size, color, or other preferences"
         />
-        <TextField
-          name="price"
-          label="Approximate Price"
-          type="number"
-          value={formData.price}
-          onChange={handleChange}
-          fullWidth
-          InputProps={{
-            startAdornment: <InputAdornment position="start">$</InputAdornment>,
-          }}
-        />
-        <FormControl fullWidth>
-          <InputLabel>Priority</InputLabel>
-          <Select
-            name="priority"
-            value={formData.priority}
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField
+            name="price"
+            label="Price"
+            type="number"
+            value={formData.price}
             onChange={handleChange}
-            label="Priority"
+            sx={{ flex: 1 }}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">$</InputAdornment>,
+            }}
+            placeholder="0.00"
+          />
+          <FormControl sx={{ flex: 1 }}>
+            <InputLabel>Priority</InputLabel>
+            <Select
+              name="priority"
+              value={formData.priority}
+              onChange={handleChange}
+              label="Priority"
+            >
+              <MenuItem value="">None</MenuItem>
+              <MenuItem value={1}>Low</MenuItem>
+              <MenuItem value={2}>Normal</MenuItem>
+              <MenuItem value={3}>Medium</MenuItem>
+              <MenuItem value={4}>High</MenuItem>
+              <MenuItem value={5}>Must Have</MenuItem>
+            </Select>
+          </FormControl>
+        </Box>
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 1 }}>
+          <Button
+            type="submit"
+            variant="contained"
+            size="large"
+            sx={{ minWidth: 140 }}
           >
-            <MenuItem value={1}>Very Low</MenuItem>
-            <MenuItem value={2}>Low</MenuItem>
-            <MenuItem value={3}>Medium</MenuItem>
-            <MenuItem value={4}>High</MenuItem>
-            <MenuItem value={5}>Very High</MenuItem>
-          </Select>
-        </FormControl>
-        <DialogActions>
-          <Button type="submit" variant="contained" color="primary">
-            {initialData ? 'Update' : 'Add'} Item
+            {initialData ? 'Save Changes' : 'Add Item'}
           </Button>
-        </DialogActions>
-      </Stack>
+        </Box>
+      </Box>
     </form>
   );
 }
 
-export default WishlistForm; 
+export default WishlistForm;

@@ -7,21 +7,22 @@ import {
   Button,
   TextField,
   Typography,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
+  Box,
   IconButton,
   Alert,
-  ListItemAvatar,
   Avatar,
-  Box,
   Chip,
+  alpha,
 } from '@mui/material';
-import { Delete as DeleteIcon } from '@mui/icons-material';
+import {
+  Delete as DeleteIcon,
+  PersonAdd as PersonAddIcon,
+  Schedule as ScheduleIcon,
+} from '@mui/icons-material';
 import { format } from 'date-fns';
 import { shareList, getSharedUsers, unshareList } from '../services/api';
 import { useList } from '../contexts/ListContext';
+import { colors } from '../theme';
 
 function ShareListDialog({ open, onClose, listId }) {
   const [email, setEmail] = useState('');
@@ -43,7 +44,7 @@ function ShareListDialog({ open, onClose, listId }) {
     try {
       setError('');
       setSuccess('');
-      
+
       if (!email.trim()) {
         setError('Please enter an email address');
         return;
@@ -52,8 +53,8 @@ function ShareListDialog({ open, onClose, listId }) {
       const result = await shareList(currentList._id, email.trim());
       await loadSharedUsers();
       setSuccess(
-        result.isPending 
-          ? 'Invitation sent! They will get access when they sign up.' 
+        result.isPending
+          ? 'Invitation sent! They will get access when they sign up.'
           : 'List shared successfully'
       );
       setEmail('');
@@ -61,7 +62,7 @@ function ShareListDialog({ open, onClose, listId }) {
     } catch (error) {
       console.error('Share error:', error);
       setError(
-        error.response?.data?.message || 
+        error.response?.data?.message ||
         'Error sharing list. Please try again.'
       );
     }
@@ -97,91 +98,177 @@ function ShareListDialog({ open, onClose, listId }) {
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>Share Your List</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      PaperProps={{
+        sx: { borderRadius: '20px' },
+      }}
+    >
+      <DialogTitle sx={{ pb: 1 }}>Share Your List</DialogTitle>
       <DialogContent>
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }}>{success}</Alert>}
-        
+        {error && (
+          <Alert
+            severity="error"
+            sx={{
+              mb: 2,
+              borderRadius: '12px',
+              backgroundColor: alpha(colors.error, 0.1),
+              color: colors.error,
+              '& .MuiAlert-icon': { color: colors.error },
+            }}
+          >
+            {error}
+          </Alert>
+        )}
+        {success && (
+          <Alert
+            severity="success"
+            sx={{
+              mb: 2,
+              borderRadius: '12px',
+              backgroundColor: alpha(colors.success, 0.1),
+              color: colors.success,
+              '& .MuiAlert-icon': { color: colors.success },
+            }}
+          >
+            {success}
+          </Alert>
+        )}
+
         <form onSubmit={handleShare}>
-          <TextField
-            fullWidth
-            label="Email Address"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            margin="normal"
-            helperText="Enter the email address to share with"
-            required
-          />
-          <Box sx={{ mt: 1, mb: 3 }}>
-            <Button type="submit" variant="contained" color="primary">
-              Share
+          <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+            <TextField
+              fullWidth
+              label="Email Address"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="friend@example.com"
+              size="medium"
+            />
+            <Button
+              type="submit"
+              variant="contained"
+              sx={{ py: 1.75, px: 3, minWidth: 'auto' }}
+            >
+              <PersonAddIcon />
             </Button>
           </Box>
         </form>
 
-        <Typography variant="h6" sx={{ mt: 4, mb: 2 }}>
-          Shared With
+        <Typography
+          variant="subtitle2"
+          sx={{ mt: 4, mb: 2, color: colors.text.secondary }}
+        >
+          People with access
         </Typography>
-        <List>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
           {sharedUsers.map((share) => (
-            <ListItem key={share.id}>
-              <ListItemAvatar>
-                {share.isPending ? (
-                  <Avatar sx={{ bgcolor: 'grey.400' }}>
-                    {share.email[0].toUpperCase()}
-                  </Avatar>
-                ) : share.picture ? (
-                  <Avatar src={share.picture} />
-                ) : (
-                  <Avatar>{(share.name || share.email)[0].toUpperCase()}</Avatar>
-                )}
-              </ListItemAvatar>
-              <ListItemText
-                primary={share.name || share.email}
-                secondary={
-                  <>
-                    {share.isPending && (
-                      <Chip
-                        size="small"
-                        label="Invitation Pending"
-                        color="warning"
-                        sx={{ mr: 1 }}
-                      />
-                    )}
-                    {share.lastViewed ? 
-                      `Last viewed ${format(new Date(share.lastViewed), 'MMM d, yyyy h:mm a')}` : 
-                      'Never viewed'
+            <Box
+              key={share.id}
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 2,
+                p: 2,
+                borderRadius: '14px',
+                backgroundColor: alpha(colors.background.card, 0.5),
+                border: `1px solid ${colors.border}`,
+              }}
+            >
+              {share.isPending ? (
+                <Avatar sx={{ bgcolor: colors.text.muted, width: 40, height: 40 }}>
+                  {share.email[0].toUpperCase()}
+                </Avatar>
+              ) : share.picture ? (
+                <Avatar
+                  src={share.picture}
+                  sx={{ width: 40, height: 40, border: `2px solid ${colors.primary}` }}
+                />
+              ) : (
+                <Avatar sx={{ width: 40, height: 40, border: `2px solid ${colors.primary}` }}>
+                  {(share.name || share.email)[0].toUpperCase()}
+                </Avatar>
+              )}
+
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 500,
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {share.name || share.email}
+                  </Typography>
+                  {share.isPending && (
+                    <Chip
+                      size="small"
+                      label="Pending"
+                      sx={{
+                        height: 20,
+                        fontSize: '0.7rem',
+                        backgroundColor: alpha(colors.warning, 0.15),
+                        color: colors.warning,
+                      }}
+                    />
+                  )}
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
+                  <ScheduleIcon sx={{ fontSize: 14, color: colors.text.muted }} />
+                  <Typography variant="caption" color="text.secondary">
+                    {share.lastViewed
+                      ? `Viewed ${format(new Date(share.lastViewed), 'MMM d, yyyy')}`
+                      : 'Never viewed'
                     }
-                  </>
-                }
-              />
-              <ListItemSecondaryAction>
-                <IconButton 
-                  edge="end" 
-                  onClick={() => handleUnshare(share.id)}
-                >
-                  <DeleteIcon />
-                </IconButton>
-              </ListItemSecondaryAction>
-            </ListItem>
+                  </Typography>
+                </Box>
+              </Box>
+
+              <IconButton
+                size="small"
+                onClick={() => handleUnshare(share.id)}
+                sx={{
+                  color: colors.error,
+                  '&:hover': {
+                    backgroundColor: alpha(colors.error, 0.1),
+                  },
+                }}
+              >
+                <DeleteIcon fontSize="small" />
+              </IconButton>
+            </Box>
           ))}
+
           {(!sharedUsers || sharedUsers.length === 0) && (
-            <ListItem>
-              <ListItemText
-                secondary="No one has been given access to your list yet"
-                sx={{ textAlign: 'center', color: 'text.secondary' }}
-              />
-            </ListItem>
+            <Box
+              sx={{
+                py: 4,
+                textAlign: 'center',
+                color: colors.text.secondary,
+              }}
+            >
+              <Typography variant="body2">
+                No one has access to this list yet
+              </Typography>
+            </Box>
           )}
-        </List>
+        </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
+      <DialogActions sx={{ px: 3, pb: 3 }}>
+        <Button onClick={onClose} sx={{ color: colors.text.secondary }}>
+          Done
+        </Button>
       </DialogActions>
     </Dialog>
   );
 }
 
-export default ShareListDialog; 
+export default ShareListDialog;
