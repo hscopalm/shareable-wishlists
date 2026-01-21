@@ -37,37 +37,37 @@ passport.use(
     async (accessToken, refreshToken, profile, done) => {
       try {
         // Check if user exists by email
-        let user = await User.findOne({ 
-          email: profile.emails[0].value.toLowerCase() 
+        let user = await User.findOne({
+          email: profile.emails[0].value.toLowerCase()
         });
 
-          if (user) {
-            // If this was a pending user, update their info
-            if (user.isPending) {
-              user.googleId = profile.id;
-              user.name = profile.displayName;
-              user.picture = profile.photos[0].value;
-              user.isPending = false;
-              await user.save();
-            }
-          } else {
-            // Create new user
-            user = await User.create({
-              googleId: profile.id,
-              email: profile.emails[0].value.toLowerCase(),
-              name: profile.displayName,
-              picture: profile.photos[0].value,
-              isPending: false
-            });
+        if (user) {
+          // If this was a pending user, update their info
+          if (user.isPending) {
+            user.googleId = profile.id;
+            user.name = profile.displayName;
+            user.picture = profile.photos[0].value;
+            user.isPending = false;
+            await user.save();
           }
-
-          return done(null, user);
-        } catch (error) {
-          return done(error, null);
+        } else {
+          // Create new user
+          user = await User.create({
+            googleId: profile.id,
+            email: profile.emails[0].value.toLowerCase(),
+            name: profile.displayName,
+            picture: profile.photos[0].value,
+            isPending: false
+          });
         }
+
+        return done(null, user);
+      } catch (error) {
+        return done(error, null);
       }
-    )
-  );
+    }
+  )
+);
 } else {
   console.log('Development mode: Google OAuth disabled, using dev auto-login');
 }

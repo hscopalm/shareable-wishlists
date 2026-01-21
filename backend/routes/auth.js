@@ -94,7 +94,13 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
       session: true
     }),
     (req, res) => {
-      res.redirect(`${process.env.FRONTEND_URL}/`);
+      // Explicitly save session before redirect to ensure it's persisted
+      req.session.save((err) => {
+        if (err) {
+          console.error('Session save error:', err);
+        }
+        res.redirect(`${process.env.FRONTEND_URL}/`);
+      });
     }
   );
 }
