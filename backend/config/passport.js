@@ -22,19 +22,24 @@ if (process.env.NODE_ENV !== 'development' || process.env.DEV_AUTO_LOGIN !== 'tr
     process.exit(1);
   }
 
-  passport.use(
-    new GoogleStrategy(
-      {
-        clientID: process.env.GOOGLE_CLIENT_ID,
-        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: `${process.env.FRONTEND_URL}/api/auth/google/callback`
-      },
-      async (accessToken, refreshToken, profile, done) => {
-        try {
-          // Check if user exists by email
-          let user = await User.findOne({
-            email: profile.emails[0].value.toLowerCase()
-          });
+// Build callback URL from FRONTEND_URL or default to production domain
+const frontendUrl = process.env.FRONTEND_URL || 'https://www.giftguru.cc';
+const callbackURL = `${frontendUrl}/api/auth/google/callback`;
+
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: callbackURL,
+      proxy: true
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        // Check if user exists by email
+        let user = await User.findOne({ 
+          email: profile.emails[0].value.toLowerCase() 
+        });
 
           if (user) {
             // If this was a pending user, update their info

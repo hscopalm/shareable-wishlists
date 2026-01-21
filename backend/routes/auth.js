@@ -3,6 +3,32 @@ const passport = require('passport');
 const User = require('../models/User');
 const router = express.Router();
 
+// Test route
+router.get('/test', (req, res) => {
+  res.json({ message: 'Auth routes working!' });
+});
+
+// Debug route to check headers and proxy settings
+router.get('/debug', (req, res) => {
+  res.json({
+    headers: {
+      'x-forwarded-proto': req.headers['x-forwarded-proto'],
+      'x-forwarded-for': req.headers['x-forwarded-for'],
+      'x-custom-header': req.headers['x-custom-header'] ? 'present' : 'missing',
+      'host': req.headers['host'],
+    },
+    express: {
+      protocol: req.protocol,
+      secure: req.secure,
+      ip: req.ip,
+    },
+    session: {
+      id: req.sessionID,
+      cookie: req.session?.cookie
+    }
+  });
+});
+
 // Development mode: Auto-login route
 if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'true') {
   router.get('/dev-login', async (req, res) => {
@@ -74,6 +100,10 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
 }
 
 router.get('/current-user', (req, res) => {
+  console.log('Current user check - Session ID:', req.sessionID);
+  console.log('Is authenticated:', req.isAuthenticated());
+  console.log('User in session:', req.user?.email);
+  
   if (req.isAuthenticated() && req.user) {
     res.json(req.user);
   } else {

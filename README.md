@@ -36,15 +36,17 @@ graph TD
     classDef app fill:#85B09A,stroke:#333,stroke-width:2px
     classDef db fill:#68B587,stroke:#333,stroke-width:2px
     classDef external fill:#B4A7D6,stroke:#333,stroke-width:2px
+    classDef storage fill:#569A31,stroke:#333,stroke-width:2px
 
     %% Client Layer
     Client[Web Browser<br/>React SPA]:::browser
 
     %% AWS Infrastructure
     subgraph AWS["AWS Cloud"]
-        ALB[Application Load Balancer]:::aws
+        CF[CloudFront CDN<br/>Global Edge Locations]:::aws
+        S3[S3 Bucket<br/>Static Frontend<br/>React Build]:::storage
+        ALB[Application Load Balancer<br/>API Traffic Only]:::aws
         subgraph ECS["ECS Cluster"]
-            FE[Frontend Container<br/>React + Nginx]:::app
             subgraph BE["Backend Container"]
                 Express[Node.js + Express]:::app
                 EmailService[Email Service<br/>Nodemailer]:::app
@@ -61,9 +63,10 @@ graph TD
     end
 
     %% Connections
-    Client --> |HTTPS| ALB
-    ALB --> |/api| Express
-    ALB --> |/* static| FE
+    Client --> |HTTPS| CF
+    CF --> |/* static| S3
+    CF --> |/api/*| ALB
+    ALB --> |Forward| Express
     Express --> |Store/Query| MongoDB
     Express --> |Auth| Google
     EmailService --> |SMTP| SMTP[Email Provider]:::external
@@ -75,18 +78,20 @@ graph TD
 ## 🛠️ Tech Stack
 
 - Infrastructure:
-  - AWS ECS for container orchestration
-  - Application Load Balancer for traffic distribution
+  - AWS CloudFront for global CDN and edge caching
+  - AWS S3 for static frontend hosting
+  - AWS ECS (Fargate) for backend container orchestration
+  - Application Load Balancer for backend API traffic
   - Terraform for Infrastructure as Code
   - CI/CD with GitHub Actions
 - Frontend: 
   - React with Material-UI
-  - Nginx for serving static content
-  - Containerized with Docker
+  - Deployed as static build to S3
+  - Previously: Nginx container (retained for local development)
 - Backend: 
   - Node.js with Express
-  - Containerized with Docker
-- Database: MongoDB with Mongoose
+  - Containerized with Docker on ECS Fargate
+- Database: MongoDB Atlas (free tier)
 - Authentication: Google OAuth 2.0
 
 ## 📚 Models
@@ -118,51 +123,89 @@ This design eliminates the need for separate collections for items, shares, and 
 
 ## 💻 Development
 
-### Quick Start (Docker Compose)
+### Local Development
+1. Clone the repository
+2. Set up environment variables (`.env.development`)
+3. Run via Docker Compose:
+   ```bash
+   docker-compose up
+   ```
+   This runs frontend (Nginx), backend (Node.js), and MongoDB locally
+
+### Production Deployment
+
+#### Initial Infrastructure Setup
+1. Configure Terraform variables:
+   ```bash
+   cd terraform
+   # Create terraform.tfvars with:
+   # - ssl_certificate_arn
+   # - cloudfront_secret (optional, for extra security)
+   ```
+
+2. Deploy infrastructure:
+   ```bash
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+#### Backend Deployment
+1. Build and push Docker image to ECR:
+   ```bash
+   # Authenticate with ECR
+   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account>.dkr.ecr.us-east-1.amazonaws.com
+   
+   # Build and push
+   cd backend
+   docker build -t wishlist-backend .
+   docker tag wishlist-backend:latest <backend-ecr-url>:latest
+   docker push <backend-ecr-url>:latest
+   ```
+
+2. Update ECS service to use new image (or configure auto-deployment)
+
+#### Frontend Deployment
+Run the deployment script:
 ```bash
-# 1. Clone and setup
-git clone <repo-url>
-cd shareable-wishlists
-
-# 2. Configure environment (copy and edit as needed)
-cp env.example .env.development
-
-# 3. Build and run all services
-docker-compose up --build
-
-# 4. Seed the database with test data (in a separate terminal)
-cd backend && npm run seed
-
-# 5. Access the app at http://localhost
+./deploy-frontend.sh
 ```
 
-### Development Auth Bypass
-Set `DEV_AUTO_LOGIN=true` in `.env.development` to bypass Google OAuth and auto-login as a seed user. This allows local development without setting up Google OAuth credentials.
+This script will:
+- Build the React app
+- Sync files to S3
+- Invalidate CloudFront cache
+- Output the live URL
 
-### Available Commands
-```bash
-# Backend
-cd backend
-npm run dev         # Start with hot-reload
-npm run seed        # Seed database with test data
+**Manual DNS Update Required:**
+After initial terraform apply, update your DNS (Route53 or external) to point `www.giftguru.cc` to the CloudFront distribution domain (available in terraform outputs).
 
-# Frontend
-cd frontend
-npm start           # Start dev server (port 3000)
-npm run build       # Production build
-```
+### Environment Variables
 
-### Deployment (AWS)
-1. Build and push images to AWS ECR
-2. Run `terraform init` and `terraform apply` in the `terraform/` directory
+**Backend (Production - AWS Parameter Store):**
+- `MONGODB_URI` - MongoDB Atlas connection string
+- `GOOGLE_CLIENT_ID` - OAuth client ID
+- `GOOGLE_CLIENT_SECRET` - OAuth client secret
+- `SESSION_SECRET` - Express session secret
+- `GOOGLE_SA_USERNAME` - Email service account
+- `GOOGLE_APP_PASSWORD` - Email app password
+- `ADMIN_EMAILS` - Comma-separated admin emails
+
+**Backend (Local - .env.development):**
+Same as above, plus:
+- `PORT` - Server port (default: 5000)
+- `NODE_ENV` - Set to 'development'
+- `FRONTEND_URL` - Frontend URL (http://localhost)
 
 ## 🔒 Security Considerations
 - Development environment variables are managed through `.env.development`
-- Production secrets are managed through AWS Parameter Store
+- Production secrets are managed through AWS Systems Manager Parameter Store
 - OAuth 2.0 for secure authentication
-- HTTPS enforced in production
-- MongoDB Atlas with IP whitelisting
-- AWS security groups limit access to services
+- HTTPS enforced via CloudFront and ALB
+- MongoDB Atlas with IP whitelisting and authentication
+- AWS security groups restrict ECS task access
+- S3 bucket access limited to CloudFront via Origin Access Control (OAC)
+- CloudFront uses custom header for ALB authentication (optional additional security)
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

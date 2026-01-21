@@ -11,31 +11,7 @@ resource "aws_lb" "main" {
   }
 }
 
-resource "aws_lb_target_group" "frontend" {
-  name        = "${var.app_name}-frontend-${var.environment}"
-  port        = 80
-  protocol    = "HTTP"
-  vpc_id      = module.vpc.vpc_id
-  target_type = "ip"
-
-  health_check {
-    enabled             = true
-    healthy_threshold   = 2
-    interval            = 30
-    matcher             = "200"
-    path                = "/"
-    port                = "traffic-port"
-    protocol            = "HTTP"
-    timeout             = 5
-    unhealthy_threshold = 2
-  }
-
-  tags = {
-    Environment = var.environment
-    Application = var.app_name
-  }
-}
-
+# Backend target group only - frontend served via CloudFront/S3
 resource "aws_lb_target_group" "backend" {
   name        = "${var.app_name}-backend-${var.environment}"
   port        = 5000
@@ -66,14 +42,10 @@ resource "aws_lb_listener" "http" {
   port              = "80"
   protocol          = "HTTP"
 
+  # Forward HTTP traffic to backend (CloudFront uses HTTP to connect)
   default_action {
-    type = "redirect"
-
-    redirect {
-      port        = "443"
-      protocol    = "HTTPS"
-      status_code = "HTTP_301"
-    }
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend.arn
   }
 }
 
@@ -84,24 +56,12 @@ resource "aws_lb_listener" "https" {
   ssl_policy        = "ELBSecurityPolicy-2016-08"
   certificate_arn   = var.ssl_certificate_arn
 
+  # Forward all HTTPS traffic to backend (CloudFront will route frontend traffic)
   default_action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.frontend.arn
-  }
-}
-
-resource "aws_lb_listener_rule" "backend" {
-  listener_arn = aws_lb_listener.https.arn
-  priority     = 100
-
-  action {
     type             = "forward"
     target_group_arn = aws_lb_target_group.backend.arn
   }
+}
 
-  condition {
-    path_pattern {
-      values = ["/api/*"]
-    }
-  }
-} 
+# No separate backend rule needed - all traffic goes to backend now
+# CloudFront handles routing: /api/* -> ALB, /* -> S3 

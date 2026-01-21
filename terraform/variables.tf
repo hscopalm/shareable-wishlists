@@ -43,4 +43,11 @@ variable "app_name" {
 variable "ssl_certificate_arn" {
   description = "ARN of SSL certificate in ACM"
   type        = string
+}
+
+variable "cloudfront_secret" {
+  description = "Secret header value for CloudFront to ALB communication"
+  type        = string
+  sensitive   = true
+  default     = "change-me-in-production"
 } 
