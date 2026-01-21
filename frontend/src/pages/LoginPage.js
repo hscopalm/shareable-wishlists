@@ -10,12 +10,15 @@ function LoginPage() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
+        height: '100vh',
+        width: '100vw',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         backgroundColor: colors.background.main,
-        position: 'relative',
+        position: 'fixed',
+        top: 0,
+        left: 0,
         overflow: 'hidden',
       }}
     >
@@ -23,24 +26,24 @@ function LoginPage() {
       <Box
         sx={{
           position: 'absolute',
-          top: '-20%',
-          left: '-10%',
-          width: '50%',
-          height: '60%',
-          background: `radial-gradient(circle, ${alpha(colors.primary, 0.15)} 0%, transparent 70%)`,
-          filter: 'blur(60px)',
+          top: '-30%',
+          left: '-20%',
+          width: '70%',
+          height: '80%',
+          background: `radial-gradient(ellipse, ${alpha(colors.primary, 0.12)} 0%, transparent 60%)`,
+          filter: 'blur(80px)',
           pointerEvents: 'none',
         }}
       />
       <Box
         sx={{
           position: 'absolute',
-          bottom: '-20%',
-          right: '-10%',
-          width: '50%',
-          height: '60%',
-          background: `radial-gradient(circle, ${alpha(colors.secondary, 0.15)} 0%, transparent 70%)`,
-          filter: 'blur(60px)',
+          bottom: '-30%',
+          right: '-20%',
+          width: '70%',
+          height: '80%',
+          background: `radial-gradient(ellipse, ${alpha(colors.secondary, 0.12)} 0%, transparent 60%)`,
+          filter: 'blur(80px)',
           pointerEvents: 'none',
         }}
       />
