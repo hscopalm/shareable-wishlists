@@ -181,7 +181,6 @@ function SharedListsPage() {
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 0.75,
-                        mb: 2,
                         px: 1.5,
                         py: 0.5,
                         borderRadius: '8px',
@@ -197,7 +196,11 @@ function SharedListsPage() {
                   )}
 
                   {/* Shared Time */}
-                  <Typography variant="caption" color="text.secondary">
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', mt: list.event_date ? 1.5 : 0 }}
+                  >
                     Shared {formatDistanceToNow(new Date(list.sharedAt))} ago
                   </Typography>
                 </CardContent>
