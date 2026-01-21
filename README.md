@@ -83,7 +83,7 @@ graph TD
   - AWS ECS (Fargate) for backend container orchestration
   - Application Load Balancer for backend API traffic
   - Terraform for Infrastructure as Code
-  - CI/CD with GitHub Actions
+  - PowerShell deployment script
 - Frontend: 
   - React with Material-UI
   - Deployed as static build to S3
@@ -126,11 +126,17 @@ This design eliminates the need for separate collections for items, shares, and 
 ### Local Development
 1. Clone the repository
 2. Set up environment variables (`.env.development`)
+   - Set `DEV_AUTO_LOGIN=true` to skip Google OAuth setup
 3. Run via Docker Compose:
    ```bash
-   docker-compose up
+   docker-compose up --build
    ```
    This runs frontend (Nginx), backend (Node.js), and MongoDB locally
+
+4. (Optional) Seed the database with test data:
+   ```bash
+   cd backend && npm run seed
+   ```
 
 ### Production Deployment
 
@@ -151,11 +157,17 @@ This design eliminates the need for separate collections for items, shares, and 
    ```
 
 #### Backend Deployment
+Using the deployment script (recommended):
+```powershell
+./deploy.ps1 -Target Backend
+```
+
+Or manually:
 1. Build and push Docker image to ECR:
    ```bash
    # Authenticate with ECR
    aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account>.dkr.ecr.us-east-1.amazonaws.com
-   
+
    # Build and push
    cd backend
    docker build -t wishlist-backend .
@@ -166,9 +178,9 @@ This design eliminates the need for separate collections for items, shares, and 
 2. Update ECS service to use new image (or configure auto-deployment)
 
 #### Frontend Deployment
-Run the deployment script:
-```bash
-./deploy-frontend.sh
+Run the deployment script (PowerShell):
+```powershell
+./deploy.ps1 -Target Frontend
 ```
 
 This script will:
@@ -176,6 +188,11 @@ This script will:
 - Sync files to S3
 - Invalidate CloudFront cache
 - Output the live URL
+
+To deploy both frontend and backend:
+```powershell
+./deploy.ps1
+```
 
 **Manual DNS Update Required:**
 After initial terraform apply, update your DNS (Route53 or external) to point `www.giftguru.cc` to the CloudFront distribution domain (available in terraform outputs).
@@ -196,6 +213,8 @@ Same as above, plus:
 - `PORT` - Server port (default: 5000)
 - `NODE_ENV` - Set to 'development'
 - `FRONTEND_URL` - Frontend URL (http://localhost)
+- `DEV_AUTO_LOGIN` - Set to 'true' to bypass Google OAuth (auto-login as seed user)
+- `DEV_USER_EMAIL` - Email of user to auto-login as (default: hscopalm@gmail.com)
 
 ## 🔒 Security Considerations
 - Development environment variables are managed through `.env.development`

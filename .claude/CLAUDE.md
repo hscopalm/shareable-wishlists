@@ -43,6 +43,18 @@ npm run dev         # Start server with nodemon (development mode)
 npm run seed        # Seed database with test data (requires MongoDB running)
 ```
 
+### Deployment (PowerShell)
+```powershell
+# Deploy both frontend and backend
+./deploy.ps1
+
+# Deploy only frontend (S3/CloudFront)
+./deploy.ps1 -Target Frontend
+
+# Deploy only backend (ECS)
+./deploy.ps1 -Target Backend
+```
+
 ### Infrastructure (Terraform)
 ```bash
 cd terraform
@@ -57,16 +69,20 @@ terraform apply     # Apply infrastructure changes
 - **Frontend**: React 18 with Material-UI v5, React Router v6
 - **Backend**: Node.js with Express, Passport (Google OAuth 2.0)
 - **Database**: MongoDB with Mongoose ODM
-- **Infrastructure**: AWS ECS (Fargate), Application Load Balancer, Terraform IaC
+- **Infrastructure**: AWS ECS (Fargate), CloudFront, S3, Application Load Balancer, Terraform IaC
 - **Containerization**: Docker, Docker Compose
 
-### Deployment Architecture
-The application runs on AWS ECS with:
-- ALB routing `/api/*` to backend container and `/*` to frontend container
-- Frontend served via Nginx
+### Deployment Architecture (Production)
+- CloudFront serves static frontend files from S3 bucket
+- CloudFront proxies `/api/*` requests to ALB → ECS Fargate backend
 - Backend connects to MongoDB Atlas
 - Session storage in MongoDB using connect-mongo
-- Google OAuth for authentication with callback routing through ALB
+- Google OAuth for authentication with callback routing through CloudFront
+
+### Local Development Architecture (Docker Compose)
+- Frontend served via Nginx container on port 80
+- Backend Express container on port 5000
+- MongoDB container on port 27017
 
 ### Project Structure
 ```
@@ -131,6 +147,9 @@ The application runs on AWS ECS with:
 - React Context API used instead of Redux for simplicity
 - Protected routes redirect unauthenticated users to login
 
+### API Base URL
+Frontend uses empty base URL (`API_BASE_URL = ''`) because CloudFront handles routing - static assets served from S3, `/api/*` forwarded to backend.
+
 ### Session Management
 - Sessions stored in MongoDB for persistence across container restarts
 - Session TTL: 24 hours
@@ -140,7 +159,6 @@ The application runs on AWS ECS with:
 ### Email Service
 - Located in `backend/utils/emailService.js`
 - Uses nodemailer for sending share notifications
-- Email notifications sent when lists are shared with users
 - **Optional**: If `GOOGLE_SA_USERNAME` or `GOOGLE_APP_PASSWORD` are not set, email is disabled gracefully (logs instead of sending)
 
 ## Environment Variables
@@ -160,7 +178,7 @@ The application runs on AWS ECS with:
 - `GOOGLE_APP_PASSWORD` - Email service app password (optional - email disabled if not set)
 
 ### Frontend
-- API calls use relative paths (empty `API_BASE_URL`) to work with ALB routing
+- API calls use relative paths (empty `API_BASE_URL`) to work with CloudFront/ALB routing
 - OAuth initiated through same-origin `/api/auth/google`
 
 ## Common Development Patterns
@@ -189,7 +207,7 @@ The application runs on AWS ECS with:
 
 2. **Session Cookie Configuration**: Cookie settings (secure, domain, sameSite) must match environment. Cookie domain is only set in production to allow any host in development.
 
-3. **OAuth Callback URL**: Must match exactly in Google Cloud Console and `FRONTEND_URL` env var. ALB routing requires callback through frontend domain.
+3. **OAuth Callback URL**: Must match exactly in Google Cloud Console and `FRONTEND_URL` env var. CloudFront routing requires callback through frontend domain.
 
 4. **Health Check Endpoint**: `/health` endpoint checks MongoDB connection for ALB health checks. Don't add authentication to this endpoint.
 
@@ -225,8 +243,9 @@ The seed script (`backend/scripts/seed.js`):
 
 ### AWS Infrastructure
 - Managed via Terraform in `terraform/` directory
-- ECS Fargate for container orchestration
-- Application Load Balancer handles SSL termination and routing
+- ECS Fargate for container orchestration (backend only)
+- CloudFront for CDN and routing (frontend from S3, API to ALB)
+- Application Load Balancer handles backend traffic from CloudFront
 - Security groups restrict access to necessary ports only
 - Production secrets managed via AWS Parameter Store (not .env files)
 
@@ -237,6 +256,7 @@ The seed script (`backend/scripts/seed.js`):
 - docker-compose.yml for local development includes MongoDB
 
 ### CI/CD
-- Deployment typically involves building images and pushing to AWS ECR
+- Use `./deploy.ps1` for manual deployments
+- Deployment builds images and pushes to AWS ECR (backend) / S3 (frontend)
 - Terraform manages infrastructure state
 - MongoDB Atlas requires IP whitelisting for security
