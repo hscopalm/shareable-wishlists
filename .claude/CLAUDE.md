@@ -15,6 +15,9 @@ Gift Guru is a smart gift management platform that helps users create and share 
 # Build and run all services (frontend, backend, MongoDB)
 docker-compose up --build
 
+# Seed the database with test users and wishlists (in a separate terminal)
+cd backend && npm run seed
+
 # Frontend runs on: http://localhost (port 80)
 # Backend API runs on: http://localhost:5000
 # MongoDB runs on: localhost:27017
@@ -37,6 +40,7 @@ cd backend
 npm install          # Install dependencies
 npm start           # Start server (production mode)
 npm run dev         # Start server with nodemon (development mode)
+npm run seed        # Seed database with test data (requires MongoDB running)
 ```
 
 ### Infrastructure (Terraform)
@@ -200,10 +204,22 @@ The application runs on AWS ECS with:
 - Database scripts located in `mongo/` directory
 - Seeds available for test data in `mongo/seeds/`
 - Scripts for managing orphaned records and user data
-- **Seed Data Format**: Seeds use MongoDB Extended JSON format for proper type handling:
-  - ObjectIds: `{"$oid": "6763b6892d9d2bba36992ecd"}`
-  - Dates: `{"$date": "2024-12-19T06:00:41.698Z"}`
-  - Import with: `mongoimport --uri "$MONGODB_URI" --collection users --file mongo/seeds/wishlist.users.json --jsonArray`
+
+### Seeding the Database
+```bash
+# With Docker Compose running (MongoDB on localhost:27017)
+cd backend && npm run seed
+```
+
+The seed script (`backend/scripts/seed.js`):
+- Reads seed files from `mongo/seeds/`
+- Parses MongoDB Extended JSON format automatically
+- Upserts users by email (won't duplicate)
+- Clears and recreates wishlists (fresh data each time)
+
+**Seed Data Format**: Seeds use MongoDB Extended JSON format:
+- ObjectIds: `{"$oid": "6763b6892d9d2bba36992ecd"}`
+- Dates: `{"$date": "2024-12-19T06:00:41.698Z"}`
 
 ## Deployment Notes
 

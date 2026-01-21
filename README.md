@@ -118,15 +118,43 @@ This design eliminates the need for separate collections for items, shares, and 
 
 ## 💻 Development
 
-1. Clone the repository
-2. Set up environment variables (`.env.development` or similar)
-3. Build images
-    a. For local development:
-        - Build the images, and run the application via docker compose
-    b. For deployment:
-        - Build and deploy the images to AWS ECR via a deployment script
-4. Deploy the infrastructure (if you are deploying to AWS)
-    - Run `terraform init` and `terraform apply` to create the infrastructure
+### Quick Start (Docker Compose)
+```bash
+# 1. Clone and setup
+git clone <repo-url>
+cd shareable-wishlists
+
+# 2. Configure environment (copy and edit as needed)
+cp env.example .env.development
+
+# 3. Build and run all services
+docker-compose up --build
+
+# 4. Seed the database with test data (in a separate terminal)
+cd backend && npm run seed
+
+# 5. Access the app at http://localhost
+```
+
+### Development Auth Bypass
+Set `DEV_AUTO_LOGIN=true` in `.env.development` to bypass Google OAuth and auto-login as a seed user. This allows local development without setting up Google OAuth credentials.
+
+### Available Commands
+```bash
+# Backend
+cd backend
+npm run dev         # Start with hot-reload
+npm run seed        # Seed database with test data
+
+# Frontend
+cd frontend
+npm start           # Start dev server (port 3000)
+npm run build       # Production build
+```
+
+### Deployment (AWS)
+1. Build and push images to AWS ECR
+2. Run `terraform init` and `terraform apply` in the `terraform/` directory
 
 ## 🔒 Security Considerations
 - Development environment variables are managed through `.env.development`
