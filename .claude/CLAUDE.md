@@ -43,16 +43,28 @@ npm run dev         # Start server with nodemon (development mode)
 npm run seed        # Seed database with test data (requires MongoDB running)
 ```
 
-### Deployment (PowerShell)
-```powershell
+### Deployment
+
+**Important**: Infrastructure must be deployed before the application. Follow this order:
+
+1. **First, deploy infrastructure (Terraform)**:
+```bash
+cd terraform
+terraform init      # Initialize Terraform (first time only)
+terraform plan      # Review infrastructure changes
+terraform apply     # Apply infrastructure changes (confirm when prompted)
+```
+
+2. **Then, deploy the application**:
+```bash
 # Deploy both frontend and backend
-./deploy.ps1
+./deploy.sh
 
 # Deploy only frontend (S3/CloudFront)
-./deploy.ps1 -Target Frontend
+./deploy.sh Frontend
 
 # Deploy only backend (ECS)
-./deploy.ps1 -Target Backend
+./deploy.sh Backend
 ```
 
 ### Infrastructure (Terraform)
