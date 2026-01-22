@@ -29,6 +29,8 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
   const isClaimedByOther = item.status?.claimedBy && !isClaimedByMe;
   const claimer = item.status?.claimedBy;
   const isClaimed = isClaimedByMe || isClaimedByOther;
+  // Only show claimed styling on shared lists - owners should never see items as claimed
+  const showClaimedStyle = isClaimed && isSharedList;
 
   const handleCardClick = () => {
     if (isSharedList) {
@@ -71,13 +73,13 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'visible',
         '&:hover': {
-          transform: isClaimed ? 'none' : 'translateY(-4px)',
+          transform: showClaimedStyle ? 'none' : 'translateY(-4px)',
           '& .item-actions': {
             opacity: 1,
             transform: 'translateY(0)',
           },
         },
-        ...(isClaimed && {
+        ...(showClaimedStyle && {
           opacity: 0.65,
           '&::after': {
             content: '""',
@@ -101,7 +103,7 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
               fontSize: '1.1rem',
               lineHeight: 1.3,
               pr: 1,
-              color: isClaimed ? colors.text.secondary : colors.text.primary,
+              color: showClaimedStyle ? colors.text.secondary : colors.text.primary,
             }}
           >
             {item.title}
@@ -163,7 +165,7 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
               alt={item.title}
               sx={{
                 objectFit: 'contain',
-                filter: isClaimed ? 'grayscale(0.8)' : 'none',
+                filter: showClaimedStyle ? 'grayscale(0.8)' : 'none',
                 transition: 'filter 0.3s ease',
               }}
             />
