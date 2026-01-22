@@ -25,6 +25,12 @@ cd backend && npm run seed
 
 **Development Auth Bypass**: Set `DEV_AUTO_LOGIN=true` in `.env.development` to skip Google OAuth and auto-login as a seed user. This allows local development without Google OAuth credentials.
 
+**Important**: When making significant feature changes during development (new dependencies, Dockerfile changes, or major code updates), rebuild the Docker images using:
+```bash
+docker-compose up --build -d
+```
+This ensures containers are running with the latest code and dependencies. Do this proactively without waiting to be asked.
+
 ### Frontend Development
 ```bash
 cd frontend
@@ -234,6 +240,22 @@ Frontend uses empty base URL (`API_BASE_URL = ''`) because CloudFront handles ro
 - Database scripts located in `mongo/` directory
 - Seeds available for test data in `mongo/seeds/`
 - Scripts for managing orphaned records and user data
+- MongoDB database tools (`mongoexport`, `mongoimport`, `mongodump`) are available for data inspection and manipulation
+
+### MongoDB Tools
+
+Use MongoDB command-line tools to inspect and export data from the local database:
+
+```bash
+# Export a collection to JSON (useful for checking data shape and values)
+mongoexport --uri="mongodb://localhost:27017/wishlist" --collection=users --out=users.json --jsonArray
+
+# Export wishlists with pretty formatting
+mongoexport --uri="mongodb://localhost:27017/wishlist" --collection=wishlists --out=wishlists.json --jsonArray --pretty
+
+# Import data back
+mongoimport --uri="mongodb://localhost:27017/wishlist" --collection=users --file=users.json --jsonArray
+```
 
 ### Seeding the Database
 ```bash
@@ -268,7 +290,7 @@ The seed script (`backend/scripts/seed.js`):
 - docker-compose.yml for local development includes MongoDB
 
 ### CI/CD
-- Use `./deploy.ps1` for manual deployments
+- Use `./deploy.sh` for manual deployments
 - Deployment builds images and pushes to AWS ECR (backend) / S3 (frontend)
 - Terraform manages infrastructure state
 - MongoDB Atlas requires IP whitelisting for security
