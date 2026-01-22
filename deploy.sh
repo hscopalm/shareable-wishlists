@@ -66,7 +66,7 @@ deploy_backend() {
 
     # Build backend image
     echo -e "\033[33mBuilding backend Docker image...\033[0m"
-    docker build -t wishlist-backend:latest "$BACKEND_DIR"
+    docker build --platform linux/amd64 -t wishlist-backend:latest "$BACKEND_DIR"
 
     if [[ $? -ne 0 ]]; then
         echo -e "\033[31mBackend build failed.\033[0m"
