@@ -51,4 +51,32 @@ const wishlistSchema = new mongoose.Schema({
   }]
 });
 
+// Virtual property for archive date calculation
+// Archive criteria: 3 months after creation OR 1 month after event date, whichever is LATER
+wishlistSchema.virtual('archiveDate').get(function() {
+  const threeMonthsAfterCreation = new Date(this.createdAt);
+  threeMonthsAfterCreation.setMonth(threeMonthsAfterCreation.getMonth() + 3);
+
+  if (!this.event_date) {
+    return threeMonthsAfterCreation;
+  }
+
+  const oneMonthAfterEvent = new Date(this.event_date);
+  oneMonthAfterEvent.setMonth(oneMonthAfterEvent.getMonth() + 1);
+
+  // Return whichever is later
+  return threeMonthsAfterCreation > oneMonthAfterEvent
+    ? threeMonthsAfterCreation
+    : oneMonthAfterEvent;
+});
+
+// Virtual property to check if list is archived
+wishlistSchema.virtual('isArchived').get(function() {
+  return new Date() > this.archiveDate;
+});
+
+// Configure schema to include virtuals in JSON output
+wishlistSchema.set('toJSON', { virtuals: true });
+wishlistSchema.set('toObject', { virtuals: true });
+
 module.exports = mongoose.model('Wishlist', wishlistSchema); 

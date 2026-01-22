@@ -13,6 +13,9 @@ import {
   DialogActions,
   TextField,
   alpha,
+  Switch,
+  FormControlLabel,
+  Collapse,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -21,6 +24,7 @@ import {
   CalendarMonth as CalendarIcon,
   Inventory2 as EmptyIcon,
   ArrowForward as ArrowIcon,
+  Archive as ArchiveIcon,
 } from '@mui/icons-material';
 import { useList } from '../contexts/ListContext';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +39,11 @@ function ListsPage() {
   const [editingList, setEditingList] = useState(null);
   const [formData, setFormData] = useState({ name: '', description: '', event_date: '' });
   const [hoveredCard, setHoveredCard] = useState(null);
+  const [showArchived, setShowArchived] = useState(false);
+
+  // Filter lists into active and archived
+  const activeLists = lists.filter(list => !list.isArchived);
+  const archivedLists = lists.filter(list => list.isArchived);
 
   const handleListClick = (list) => {
     setCurrentList(list);
@@ -119,9 +128,23 @@ function ListsPage() {
             My Lists
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {lists.length} {lists.length === 1 ? 'wishlist' : 'wishlists'}
+            {activeLists.length} {activeLists.length === 1 ? 'wishlist' : 'wishlists'}
+            {archivedLists.length > 0 && ` (${archivedLists.length} archived)`}
           </Typography>
         </Box>
+        {archivedLists.length > 0 && (
+          <FormControlLabel
+            control={
+              <Switch
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+                color="primary"
+              />
+            }
+            label="Show archived"
+            sx={{ mr: 2 }}
+          />
+        )}
         <Button
           variant="contained"
           startIcon={<AddIcon />}
@@ -132,9 +155,9 @@ function ListsPage() {
       </Box>
 
       {/* Lists Grid */}
-      {lists.length > 0 ? (
+      {activeLists.length > 0 ? (
         <Grid container spacing={3}>
-          {lists.map((list) => (
+          {activeLists.map((list) => (
             <Grid item xs={12} sm={6} md={4} key={list._id}>
               <Card
                 onClick={() => handleListClick(list)}
@@ -270,7 +293,7 @@ function ListsPage() {
             </Grid>
           ))}
         </Grid>
-      ) : (
+      ) : lists.length === 0 ? (
         <Box
           sx={{
             display: 'flex',
@@ -311,7 +334,191 @@ function ListsPage() {
             Create your first list
           </Button>
         </Box>
+      ) : (
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            py: 10,
+            px: 4,
+            borderRadius: '20px',
+            backgroundColor: alpha(colors.background.elevated, 0.3),
+            border: `1px dashed ${colors.border}`,
+          }}
+        >
+          <ArchiveIcon
+            sx={{
+              fontSize: 72,
+              color: colors.text.muted,
+              mb: 3,
+              opacity: 0.5,
+            }}
+          />
+          <Typography
+            variant="h5"
+            color="text.secondary"
+            sx={{ mb: 1, fontWeight: 600 }}
+          >
+            All lists archived
+          </Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mb: 4, textAlign: 'center' }}>
+            Toggle "Show archived" above to view your archived lists
+          </Typography>
+        </Box>
       )}
+
+      {/* Archived Lists Section */}
+      <Collapse in={showArchived && archivedLists.length > 0}>
+        <Box sx={{ mt: 4 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3 }}>
+            <ArchiveIcon sx={{ color: colors.text.secondary }} />
+            <Typography variant="h6" color="text.secondary">
+              Archived Lists ({archivedLists.length})
+            </Typography>
+          </Box>
+          <Grid container spacing={3}>
+            {archivedLists.map((list) => (
+              <Grid item xs={12} sm={6} md={4} key={list._id}>
+                <Card
+                  onClick={() => handleListClick(list)}
+                  onMouseEnter={() => setHoveredCard(list._id)}
+                  onMouseLeave={() => setHoveredCard(null)}
+                  sx={{
+                    cursor: 'pointer',
+                    position: 'relative',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    opacity: 0.7,
+                    '&:hover': {
+                      opacity: 1,
+                      transform: 'translateY(-6px)',
+                      '& .card-arrow': {
+                        opacity: 1,
+                        transform: 'translateX(0)',
+                      },
+                    },
+                  }}
+                >
+                  <CardContent sx={{ flex: 1, p: 3 }}>
+                    <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={2}>
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          fontWeight: 600,
+                          pr: 4,
+                          lineHeight: 1.3,
+                        }}
+                      >
+                        {list.name}
+                      </Typography>
+                      <ArrowIcon
+                        className="card-arrow"
+                        sx={{
+                          color: colors.primary,
+                          opacity: 0,
+                          transform: 'translateX(-8px)',
+                          transition: 'all 0.2s ease-in-out',
+                        }}
+                      />
+                    </Box>
+
+                    {list.description && (
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          mb: 2,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                        }}
+                      >
+                        {list.description}
+                      </Typography>
+                    )}
+
+                    {list.event_date && (
+                      <Box
+                        sx={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 0.75,
+                          px: 1.5,
+                          py: 0.5,
+                          borderRadius: '8px',
+                          backgroundColor: alpha(colors.primary, 0.1),
+                          border: `1px solid ${alpha(colors.primary, 0.2)}`,
+                        }}
+                      >
+                        <CalendarIcon sx={{ fontSize: 16, color: colors.primary }} />
+                        <Typography variant="caption" sx={{ fontWeight: 500 }}>
+                          {new Date(list.event_date.split('T')[0] + 'T12:00:00').toLocaleDateString()}
+                        </Typography>
+                      </Box>
+                    )}
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{ display: 'block', mt: list.event_date ? 1.5 : 0 }}
+                    >
+                      Created {formatDistanceToNow(new Date(list.createdAt))} ago
+                    </Typography>
+
+                    {/* Action Buttons */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: 12,
+                        right: 12,
+                        display: 'flex',
+                        gap: 0.5,
+                        opacity: hoveredCard === list._id ? 1 : 0,
+                        transform: hoveredCard === list._id ? 'translateY(0)' : 'translateY(-4px)',
+                        transition: 'all 0.2s ease-in-out',
+                        backgroundColor: colors.background.elevated,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: '10px',
+                        padding: '4px',
+                        boxShadow: `0 4px 20px ${alpha('#000', 0.3)}`,
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleEditClick(e, list)}
+                        sx={{
+                          color: colors.primary,
+                          '&:hover': {
+                            backgroundColor: alpha(colors.primary, 0.15),
+                          },
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton
+                        size="small"
+                        onClick={(e) => handleDeleteList(list, e)}
+                        sx={{
+                          color: colors.error,
+                          '&:hover': {
+                            backgroundColor: alpha(colors.error, 0.15),
+                          },
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      </Collapse>
 
       {/* Create/Edit Dialog */}
       <Dialog

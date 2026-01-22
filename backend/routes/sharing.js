@@ -166,7 +166,9 @@ router.get('/share/shared-with-me', async (req, res) => {
           picture: list.user.picture
         },
         items: list.items,
-        sharedAt: list.createdAt
+        sharedAt: list.createdAt,
+        isArchived: list.isArchived,
+        archiveDate: list.archiveDate
       }));
 
     res.json(lists);
