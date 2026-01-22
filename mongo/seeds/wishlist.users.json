@@ -1,24 +1,24 @@
 [{
   "_id": {"$oid": "6763b6892d9d2bba36992ecd"},
-  "googleId": "107740176648998210298",
-  "email": "hscopalm@gmail.com",
-  "name": "Harrison Palmer",
-  "picture": "https://lh3.googleusercontent.com/a/ACg8ocKWaXUfO_n4ODIMyva3_YvNF1EsQLAv5pViSD33kLxfVctKXP0=s96-c",
+  "googleId": "100000000000000000001",
+  "email": "alice.johnson@example.com",
+  "name": "Alice Johnson",
+  "picture": "https://ui-avatars.com/api/?name=Alice+Johnson&background=random",
   "createdAt": {"$date": "2024-12-19T06:00:41.698Z"}
 },
 {
   "_id": {"$oid": "6763b7222d9d2bba36992edc"},
-  "googleId": "116332548527171630520",
-  "email": "harrison@palmernet.us",
-  "name": "Harrison Palmer",
-  "picture": "https://lh3.googleusercontent.com/a/ACg8ocJDVe_otC7jqPq08EYiQDuH29NaB1vaJ5ENZzyFcd4cJVhUtekx=s96-c",
+  "googleId": "100000000000000000002",
+  "email": "bob.smith@example.com",
+  "name": "Bob Smith",
+  "picture": "https://ui-avatars.com/api/?name=Bob+Smith&background=random",
   "createdAt": {"$date": "2024-12-19T06:03:14.096Z"}
 },
 {
   "_id": {"$oid": "676a0ed1f6c759cb6987c866"},
-  "googleId": "113823045591060564775",
-  "email": "robodude678@gmail.com",
-  "name": "Harrison Palmer",
-  "picture": "https://lh3.googleusercontent.com/a/ACg8ocI_9myJxCFehFRpi7Sf0lgjtwTFrqE42smEI4ec_Edu1w0PjIUt=s96-c",
+  "googleId": "100000000000000000003",
+  "email": "carol.davis@example.com",
+  "name": "Carol Davis",
+  "picture": "https://ui-avatars.com/api/?name=Carol+Davis&background=random",
   "createdAt": {"$date": "2024-12-24T01:30:57.092Z"}
 }]

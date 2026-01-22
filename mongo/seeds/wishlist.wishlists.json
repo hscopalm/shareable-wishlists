@@ -1,6 +1,7 @@
 [{
   "name": "Birthday List",
   "description": "For friends",
+  "event_date": {"$date": "2025-03-15T00:00:00.000Z"},
   "user": {"$oid": "6763b6892d9d2bba36992ecd"},
   "createdAt": {"$date": "2024-12-19T06:00:41.698Z"},
   "sharedWith": [
@@ -61,6 +62,7 @@
 {
   "name": "Birthday list",
   "description": "Please buy me a gift!",
+  "event_date": {"$date": "2025-06-22T00:00:00.000Z"},
   "user": {"$oid": "6763b7222d9d2bba36992edc"},
   "createdAt": {"$date": "2024-12-19T06:03:14.096Z"},
   "sharedWith": [
@@ -107,6 +109,7 @@
 {
   "name": "My Wishlist",
   "description": "Default wishlist",
+  "event_date": {"$date": "2025-08-10T00:00:00.000Z"},
   "user": {"$oid": "676a0ed1f6c759cb6987c866"},
   "createdAt": {"$date": "2024-12-24T01:30:57.092Z"},
   "sharedWith": [
@@ -145,6 +148,7 @@
 {
   "name": "Christmas List",
   "description": "Help me out, I'm broke!",
+  "event_date": {"$date": "2025-12-25T00:00:00.000Z"},
   "user": {"$oid": "6763b6892d9d2bba36992ecd"},
   "createdAt": {"$date": "2024-12-27T05:50:30.526Z"},
   "sharedWith": [
