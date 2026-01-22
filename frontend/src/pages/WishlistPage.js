@@ -13,6 +13,10 @@ import {
   Tooltip,
   Fab,
   alpha,
+  Switch,
+  FormControlLabel,
+  Collapse,
+  Divider,
 } from '@mui/material';
 import Masonry from '@mui/lab/Masonry';
 import {
@@ -47,6 +51,14 @@ function WishlistPage() {
   const [sortDirection, setSortDirection] = useState('desc');
   const [openEditDialog, setOpenEditDialog] = useState(false);
   const [editFormData, setEditFormData] = useState({ name: '', description: '', event_date: '' });
+  const [showClaimedItems, setShowClaimedItems] = useState(() => {
+    return localStorage.getItem('showClaimedItems') === 'true';
+  });
+
+  const handleToggleClaimedItems = (checked) => {
+    setShowClaimedItems(checked);
+    localStorage.setItem('showClaimedItems', checked.toString());
+  };
 
   const closeAllDialogs = useCallback(() => {
     setOpenAddDialog(false);
@@ -189,6 +201,14 @@ function WishlistPage() {
       return sortDirection === 'asc' ? -comparison : comparison;
     });
   };
+
+  const sortedItems = getSortedItems();
+  const unclaimedItems = isSharedList
+    ? sortedItems.filter(item => !item.status?.claimedBy)
+    : sortedItems;
+  const claimedItems = isSharedList
+    ? sortedItems.filter(item => item.status?.claimedBy)
+    : [];
 
   const SortButton = ({ field, icon: Icon, label }) => {
     const isActive = sortBy === field;
@@ -413,24 +433,109 @@ function WishlistPage() {
       {/* Items Grid */}
       <Box sx={{ width: '100%' }}>
         {items.length > 0 ? (
-          <Masonry
-            columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
-            spacing={2}
-            defaultHeight={450}
-            defaultColumns={4}
-            defaultSpacing={2}
-          >
-            {getSortedItems().map((item) => (
-              <WishlistItem
-                key={item._id}
-                item={item}
-                onEdit={!isSharedList ? handleEditItem : undefined}
-                onDelete={!isSharedList ? handleDeleteItem : undefined}
-                onClaim={isSharedList ? handleClaimItem : undefined}
-                isSharedList={isSharedList}
-              />
-            ))}
-          </Masonry>
+          <>
+            {/* Unclaimed items (or all items for non-shared lists) */}
+            {unclaimedItems.length > 0 && (
+              <Masonry
+                columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
+                spacing={2}
+                defaultHeight={450}
+                defaultColumns={4}
+                defaultSpacing={2}
+              >
+                {unclaimedItems.map((item) => (
+                  <WishlistItem
+                    key={item._id}
+                    item={item}
+                    onEdit={!isSharedList ? handleEditItem : undefined}
+                    onDelete={!isSharedList ? handleDeleteItem : undefined}
+                    onClaim={isSharedList ? handleClaimItem : undefined}
+                    isSharedList={isSharedList}
+                  />
+                ))}
+              </Masonry>
+            )}
+
+            {/* Claimed items divider (only for shared lists with claimed items) */}
+            {isSharedList && claimedItems.length > 0 && (
+              <Box sx={{ my: 4, textAlign: 'center' }}>
+                {/* Divider line with count */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+                  <Divider sx={{ flex: 1 }} />
+                  <Typography variant="body2" color="text.secondary">
+                    🎁 {claimedItems.length} claimed {claimedItems.length === 1 ? 'item' : 'items'}
+                  </Typography>
+                  <Divider sx={{ flex: 1 }} />
+                </Box>
+
+                {/* Friendly message */}
+                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                  Keep the surprise satisfying! Peek only if you need to coordinate gifts.
+                </Typography>
+
+                {/* Toggle */}
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={showClaimedItems}
+                      onChange={(e) => handleToggleClaimedItems(e.target.checked)}
+                      size="small"
+                    />
+                  }
+                  label={showClaimedItems ? "Hide claimed" : "Show claimed"}
+                />
+              </Box>
+            )}
+
+            {/* Claimed items (collapsible) */}
+            <Collapse in={showClaimedItems && isSharedList && claimedItems.length > 0}>
+              <Masonry
+                columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
+                spacing={2}
+                defaultHeight={450}
+                defaultColumns={4}
+                defaultSpacing={2}
+              >
+                {claimedItems.map((item) => (
+                  <WishlistItem
+                    key={item._id}
+                    item={item}
+                    onClaim={handleClaimItem}
+                    isSharedList={isSharedList}
+                  />
+                ))}
+              </Masonry>
+            </Collapse>
+
+            {/* Empty unclaimed message (when all items are claimed) */}
+            {isSharedList && unclaimedItems.length === 0 && claimedItems.length > 0 && (
+              <Box
+                sx={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  py: 6,
+                  px: 4,
+                  borderRadius: '20px',
+                  backgroundColor: alpha(colors.background.elevated, 0.3),
+                  border: `1px dashed ${colors.border}`,
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="h6"
+                  color="text.secondary"
+                  sx={{ mb: 1, fontWeight: 500 }}
+                >
+                  All items have been claimed!
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Check the claimed section below to see what's being gifted.
+                </Typography>
+              </Box>
+            )}
+          </>
         ) : (
           <Box
             sx={{
