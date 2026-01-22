@@ -49,6 +49,73 @@ npm run dev         # Start server with nodemon (development mode)
 npm run seed        # Seed database with test data (requires MongoDB running)
 ```
 
+### Testing
+
+**Run tests before finalizing any feature.** Tests must pass before considering work complete.
+
+```bash
+cd backend
+npm test              # Run all tests
+npm run test:watch    # Watch mode for development
+npm run test:coverage # Run with coverage report
+```
+
+#### Testing Philosophy
+
+Write tests that catch real bugs, not tests for the sake of coverage. Focus on:
+
+1. **Critical user flows** - Features that, if broken, would make the app unusable or defeat its core purpose
+2. **Authorization boundaries** - Ensure users can only access/modify their own data
+3. **Data integrity** - Operations that could corrupt or orphan data
+4. **Race conditions** - Concurrent operations that could cause conflicts
+
+**Don't waste time on:**
+- Testing trivial getters/setters
+- Achieving arbitrary coverage percentages
+- Testing framework behavior (e.g., "does Express return 404 for missing routes")
+
+#### Test Structure
+
+```
+backend/__tests__/
+├── setup.js                    # MongoDB Memory Server setup
+├── helpers/
+│   ├── auth.js                 # Authentication helpers (loginAs)
+│   └── testApp.js              # Test Express app factory
+├── fixtures/
+│   ├── users.js                # User factory functions
+│   └── wishlists.js            # Wishlist factory functions
+├── integration/
+│   ├── critical-flows.test.js  # High-value user journey tests
+│   ├── sharing.test.js         # Share/claim functionality
+│   ├── lists.test.js           # List CRUD + authorization
+│   ├── wishlist.test.js        # Item CRUD + authorization
+│   └── auth.test.js            # Session management
+└── unit/
+    └── models/                 # Model validation + virtuals
+```
+
+#### Critical Flows to Protect
+
+These flows have dedicated tests because they're high-risk:
+
+- **Pending user conversion**: When an invited user signs up via OAuth, they must retain access to lists shared before signup
+- **Claim conflict prevention**: Two users claiming the same item simultaneously must result in exactly one success
+- **Owner-only mutations**: Only list owners can edit/delete lists and items
+- **Share access control**: Shared users can view and claim, but not modify
+
+#### Writing New Tests
+
+When adding features, ask: "What would break that users would actually notice?" Test that.
+
+```javascript
+// Good: Tests actual user-facing behavior
+it('should allow converted user to access lists shared before signup', ...)
+
+// Bad: Tests implementation details
+it('should call mongoose save method', ...)
+```
+
 ### Deployment
 
 **Important**: Infrastructure must be deployed before the application. Follow this order:
