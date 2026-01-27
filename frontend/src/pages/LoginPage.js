@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Button, Typography, alpha } from '@mui/material';
+import { Box, Button, Typography, alpha, Link } from '@mui/material';
 import { Google as GoogleIcon } from '@mui/icons-material';
+import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme';
 
@@ -131,7 +132,20 @@ function LoginPage() {
           color="text.secondary"
           sx={{ mt: 4, textAlign: 'center', opacity: 0.7 }}
         >
-          By continuing, you agree to our Terms of Service
+          By continuing, you agree to our{' '}
+          <Link
+            component={RouterLink}
+            to="/terms"
+            sx={{
+              color: colors.primary,
+              textDecoration: 'none',
+              '&:hover': {
+                textDecoration: 'underline',
+              },
+            }}
+          >
+            Terms of Service
+          </Link>
         </Typography>
       </Box>
     </Box>

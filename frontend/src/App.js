@@ -9,6 +9,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import SharedListsPage from './pages/SharedListsPage';
 import { ListProvider } from './contexts/ListContext';
 import ListsPage from './pages/ListsPage';
+import TermsOfServicePage from './pages/TermsOfServicePage';
 
 const LoadingSpinner = () => (
   <Box
@@ -93,6 +94,7 @@ function AppContent() {
           >
             <Routes>
               <Route path="/login" element={<LoginWrapper />} />
+              <Route path="/terms" element={<TermsOfServicePage />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <ListsPage />
