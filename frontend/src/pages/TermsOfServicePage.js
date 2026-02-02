@@ -34,10 +34,15 @@ function TermsOfServicePage() {
   return (
     <Box
       sx={{
-        minHeight: '100vh',
-        width: '100vw',
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
         backgroundColor: colors.background.main,
+        overflow: 'auto',
         py: 4,
+        zIndex: 1200,
       }}
     >
       <Container maxWidth="md">
