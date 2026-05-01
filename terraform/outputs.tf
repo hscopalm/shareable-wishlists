@@ -21,4 +21,10 @@ output "cloudfront_domain_name" {
 output "s3_bucket_name" {
   description = "The name of the S3 bucket for frontend"
   value       = aws_s3_bucket.frontend.bucket
-} 
+}
+
+output "github_actions_deploy_role_arn" {
+  description = "ARN of the IAM role assumed by GitHub Actions deploy workflow"
+  value       = aws_iam_role.github_actions_deploy.arn
+}
+
