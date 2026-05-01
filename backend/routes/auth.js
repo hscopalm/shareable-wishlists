@@ -29,11 +29,18 @@ router.get('/debug', (req, res) => {
   });
 });
 
-// Development mode: Auto-login route
+// Development mode: Auto-login + user picker routes
 if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'true') {
+  const findDevUser = async (userId) => {
+    if (userId) {
+      return User.findById(userId);
+    }
+    return User.findOne({ email: process.env.DEV_USER_EMAIL || 'hscopalm@gmail.com' });
+  };
+
   router.get('/dev-login', async (req, res) => {
     try {
-      const devUser = await User.findOne({ email: process.env.DEV_USER_EMAIL || 'hscopalm@gmail.com' });
+      const devUser = await findDevUser(req.query.userId);
       if (!devUser) {
         return res.status(404).json({ message: 'Dev user not found. Run seed script first.' });
       }
@@ -48,13 +55,21 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
       res.status(500).json({ message: 'Error finding dev user', error: error.message });
     }
   });
-}
 
-// In dev mode with auto-login, redirect /google to dev-login flow
-if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'true') {
+  router.get('/dev-users', async (req, res) => {
+    try {
+      const users = await User.find({ isPending: { $ne: true } })
+        .select('_id email name picture')
+        .sort({ name: 1 });
+      res.json(users);
+    } catch (error) {
+      res.status(500).json({ message: 'Error listing dev users', error: error.message });
+    }
+  });
+
   router.get('/google', async (req, res) => {
     try {
-      const devUser = await User.findOne({ email: process.env.DEV_USER_EMAIL || 'hscopalm@gmail.com' });
+      const devUser = await findDevUser(req.query.userId);
       if (!devUser) {
         return res.redirect(`${process.env.FRONTEND_URL}/?error=dev_user_not_found`);
       }
