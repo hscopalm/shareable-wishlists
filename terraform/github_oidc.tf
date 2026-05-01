@@ -12,8 +12,6 @@ resource "aws_iam_openid_connect_provider" "github" {
   thumbprint_list = [data.tls_certificate.github.certificates[0].sha1_fingerprint]
 }
 
-data "aws_caller_identity" "current" {}
-
 resource "aws_iam_role" "github_actions_deploy" {
   name = "${var.app_name}-github-actions-deploy-${var.environment}"
 
