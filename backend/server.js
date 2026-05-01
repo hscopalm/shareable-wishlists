@@ -34,6 +34,7 @@ const wishlistRoutes = require('./routes/wishlist');
 const sharingRoutes = require('./routes/sharing');
 const adminRoutes = require('./routes/admin');
 const listRoutes = require('./routes/lists');
+const publicRoutes = require('./routes/public');
 
 // Health check endpoint for ALB - improved with connection checks
 app.get('/health', async (req, res) => {
@@ -144,6 +145,7 @@ const startServer = async () => {
 
     // Use routes - after all middleware is initialized
     app.use('/api/auth', authRoutes);
+    app.use('/api/public', publicRoutes);
     app.use('/api/wishlist', requireAuth, wishlistRoutes);
     app.use('/api', requireAuth, sharingRoutes);
     app.use('/api/admin', requireAuth, adminRoutes);

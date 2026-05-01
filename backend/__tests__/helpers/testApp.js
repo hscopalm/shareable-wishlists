@@ -51,6 +51,7 @@ function createTestApp() {
   const sharingRoutes = require('../../routes/sharing');
   const adminRoutes = require('../../routes/admin');
   const listRoutes = require('../../routes/lists');
+  const publicRoutes = require('../../routes/public');
 
   // Health check endpoint
   app.get('/health', (req, res) => {
@@ -59,6 +60,7 @@ function createTestApp() {
 
   // Mount routes
   app.use('/api/auth', authRoutes);
+  app.use('/api/public', publicRoutes);
   app.use('/api/wishlist', requireAuth, wishlistRoutes);
   app.use('/api', requireAuth, sharingRoutes);
   app.use('/api/admin', requireAuth, adminRoutes);

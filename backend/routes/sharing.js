@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const User = require('../models/User');
 const Wishlist = require('../models/Wishlist');
 const { sendEmail, getShareInviteEmail } = require('../utils/emailService');
@@ -223,6 +224,102 @@ router.post('/share/claim/:listId/:itemId', async (req, res) => {
     res.json(updatedItem);
   } catch (error) {
     console.error('Error claiming/unclaiming item:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get invite link status
+router.get('/share/:listId/invite-link', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({
+      _id: req.params.listId,
+      user: req.user._id
+    });
+
+    if (!wishlist) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost';
+    res.json({
+      enabled: wishlist.inviteLinkEnabled,
+      token: wishlist.inviteToken || null,
+      link: wishlist.inviteToken ? `${frontendUrl}/invite/${wishlist.inviteToken}` : null,
+      allowAnonymousClaims: wishlist.allowAnonymousClaims
+    });
+  } catch (error) {
+    console.error('Error getting invite link:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Generate or regenerate invite link
+router.post('/share/:listId/invite-link', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({
+      _id: req.params.listId,
+      user: req.user._id
+    });
+
+    if (!wishlist) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    wishlist.inviteToken = crypto.randomBytes(32).toString('hex');
+    wishlist.inviteLinkEnabled = true;
+    await wishlist.save();
+
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost';
+    res.json({
+      token: wishlist.inviteToken,
+      link: `${frontendUrl}/invite/${wishlist.inviteToken}`
+    });
+  } catch (error) {
+    console.error('Error generating invite link:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Disable invite link
+router.delete('/share/:listId/invite-link', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({
+      _id: req.params.listId,
+      user: req.user._id
+    });
+
+    if (!wishlist) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    wishlist.inviteLinkEnabled = false;
+    await wishlist.save();
+
+    res.json({ message: 'Invite link disabled' });
+  } catch (error) {
+    console.error('Error disabling invite link:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Toggle anonymous claims
+router.put('/share/:listId/anonymous-claims', async (req, res) => {
+  try {
+    const wishlist = await Wishlist.findOne({
+      _id: req.params.listId,
+      user: req.user._id
+    });
+
+    if (!wishlist) {
+      return res.status(404).json({ message: 'List not found' });
+    }
+
+    wishlist.allowAnonymousClaims = !!req.body.allow;
+    await wishlist.save();
+
+    res.json({ allowAnonymousClaims: wishlist.allowAnonymousClaims });
+  } catch (error) {
+    console.error('Error toggling anonymous claims:', error);
     res.status(500).json({ message: error.message });
   }
 });

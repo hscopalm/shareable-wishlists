@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Container, CssBaseline, ThemeProvider, CircularProgress, Box, alpha } from '@mui/material';
 import WishlistPage from './pages/WishlistPage';
 import LoginPage from './pages/LoginPage';
@@ -10,6 +10,7 @@ import SharedListsPage from './pages/SharedListsPage';
 import { ListProvider } from './contexts/ListContext';
 import ListsPage from './pages/ListsPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import InvitePage from './pages/InvitePage';
 
 const LoadingSpinner = () => (
   <Box
@@ -48,6 +49,24 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+function PostLoginRedirect() {
+  const navigate = useNavigate();
+  const { getPostLoginRedirect } = useAuth();
+  const [checked, setChecked] = useState(false);
+
+  useEffect(() => {
+    if (!checked) {
+      const redirect = getPostLoginRedirect();
+      if (redirect) {
+        navigate(redirect, { replace: true });
+      }
+      setChecked(true);
+    }
+  }, [checked, getPostLoginRedirect, navigate]);
+
+  return null;
+}
+
 function AppContent() {
   const { user, loading } = useAuth();
 
@@ -81,6 +100,7 @@ function AppContent() {
             } : {},
           }}
         >
+          {user && <PostLoginRedirect />}
           {user && <Navbar />}
           <Container
             maxWidth="lg"
@@ -95,6 +115,7 @@ function AppContent() {
             <Routes>
               <Route path="/login" element={<LoginWrapper />} />
               <Route path="/terms" element={<TermsOfServicePage />} />
+              <Route path="/invite/:token" element={<InvitePage />} />
               <Route path="/" element={
                 <ProtectedRoute>
                   <ListsPage />

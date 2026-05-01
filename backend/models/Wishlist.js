@@ -22,6 +22,20 @@ const wishlistSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  inviteToken: {
+    type: String,
+    unique: true,
+    sparse: true,
+    index: true
+  },
+  inviteLinkEnabled: {
+    type: Boolean,
+    default: false
+  },
+  allowAnonymousClaims: {
+    type: Boolean,
+    default: false
+  },
   items: [{
     title: {
       type: String,
@@ -46,7 +60,12 @@ const wishlistSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User'
       },
-      claimedAt: Date
+      claimedAt: Date,
+      anonymousClaimerName: String,
+      isAnonymousClaim: {
+        type: Boolean,
+        default: false
+      }
     }
   }]
 });
