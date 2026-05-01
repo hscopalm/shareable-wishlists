@@ -156,43 +156,15 @@ This design eliminates the need for separate collections for items, shares, and 
    terraform apply
    ```
 
-#### Backend Deployment
-Using the deployment script (recommended):
-```powershell
-./deploy.ps1 -Target Backend
-```
+#### Backend & Frontend Deployment
+Deployment runs in GitHub Actions. A push to `main` that touches `backend/` or `frontend/` triggers `.github/workflows/deploy.yml`, which only deploys the changed component (path-filtered):
 
-Or manually:
-1. Build and push Docker image to ECR:
-   ```bash
-   # Authenticate with ECR
-   aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <account>.dkr.ecr.us-east-1.amazonaws.com
+- **Backend:** builds the Docker image, pushes to ECR, then `aws ecs update-service --force-new-deployment` against the backend service.
+- **Frontend:** runs `npm ci && npm run build`, syncs to S3 with the standard cache headers, and invalidates the CloudFront distribution.
 
-   # Build and push
-   cd backend
-   docker build -t wishlist-backend .
-   docker tag wishlist-backend:latest <backend-ecr-url>:latest
-   docker push <backend-ecr-url>:latest
-   ```
+To trigger a manual deploy (or re-deploy without a code change), use **Actions → Deploy → Run workflow** and pick `both` / `backend` / `frontend`.
 
-2. Update ECS service to use new image (or configure auto-deployment)
-
-#### Frontend Deployment
-Run the deployment script (PowerShell):
-```powershell
-./deploy.ps1 -Target Frontend
-```
-
-This script will:
-- Build the React app
-- Sync files to S3
-- Invalidate CloudFront cache
-- Output the live URL
-
-To deploy both frontend and backend:
-```powershell
-./deploy.ps1
-```
+The workflow authenticates to AWS via OIDC against the IAM role provisioned in `terraform/github_oidc.tf`. After `terraform apply`, set these as repo Variables (Settings → Secrets and variables → Actions → Variables): `AWS_DEPLOY_ROLE_ARN`, `FRONTEND_S3_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`.
 
 **Manual DNS Update Required:**
 After initial terraform apply, update your DNS (Route53 or external) to point `www.giftguru.cc` to the CloudFront distribution domain (available in terraform outputs).

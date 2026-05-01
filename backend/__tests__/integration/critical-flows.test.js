@@ -61,6 +61,30 @@ describe('Critical Flows', () => {
 
       expect(res.status).toBe(400);
     });
+
+    /**
+     * If an owner tries to share with their own email, we must not silently
+     * succeed AND we must not litter the users collection with a pending
+     * placeholder. The placeholder would never convert and would orphan
+     * forever.
+     */
+    it('should reject sharing with the owner\'s own email and not create a placeholder', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlist(alice);
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .post(`/api/share/${wishlist._id}`)
+        .send({ email: 'alice@test.com' });
+
+      expect(res.status).toBe(400);
+
+      const userCount = await User.countDocuments({ email: 'alice@test.com' });
+      expect(userCount).toBe(1);
+
+      const updated = await Wishlist.findById(wishlist._id);
+      expect(updated.sharedWith).toHaveLength(0);
+    });
   });
 
   /**
@@ -276,6 +300,86 @@ describe('Critical Flows', () => {
       } else {
         expect(claimerId).toBe(charlie._id.toString());
       }
+    });
+
+    /**
+     * Same race risk via the public invite-link claim route. Two anonymous
+     * guests (or guest + authed) can hit `/api/public/invite/:token/claim/...`
+     * concurrently with no session shared between them, so the atomic-write
+     * guard has to live in the route itself.
+     */
+    it('should only allow one anonymous claim when two guests claim simultaneously via invite link', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Contested Item', price: 100 }
+      ]);
+      const aliceAgent = await loginAs(alice);
+
+      const genRes = await aliceAgent
+        .post(`/api/share/${wishlist._id}/invite-link`)
+        .expect(200);
+      await aliceAgent
+        .put(`/api/share/${wishlist._id}/anonymous-claims`)
+        .send({ allow: true })
+        .expect(200);
+
+      const token = genRes.body.token;
+      const itemId = wishlist.items[0]._id;
+      const url = `/api/public/invite/${token}/claim/${itemId}`;
+      const { request: guest1 } = createUnauthenticatedRequest();
+      const { request: guest2 } = createUnauthenticatedRequest();
+
+      const [r1, r2] = await Promise.all([
+        guest1.post(url).send({ claimerName: 'Guest One' }),
+        guest2.post(url).send({ claimerName: 'Guest Two' })
+      ]);
+
+      const successCount = [r1, r2].filter(r => r.status === 200).length;
+      const failCount = [r1, r2].filter(r => r.status === 400).length;
+      expect(successCount).toBe(1);
+      expect(failCount).toBe(1);
+
+      const final = await Wishlist.findById(wishlist._id);
+      expect(final.items[0].status.isAnonymousClaim).toBe(true);
+      expect(['Guest One', 'Guest Two']).toContain(final.items[0].status.anonymousClaimerName);
+    });
+
+    it('should only allow one claim when an anonymous guest and an authed user race via invite link', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const bob = await createUser({ email: 'bob@test.com', name: 'Bob' });
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Mixed Race Item', price: 50 }
+      ]);
+      const aliceAgent = await loginAs(alice);
+
+      const genRes = await aliceAgent
+        .post(`/api/share/${wishlist._id}/invite-link`)
+        .expect(200);
+      await aliceAgent
+        .put(`/api/share/${wishlist._id}/anonymous-claims`)
+        .send({ allow: true })
+        .expect(200);
+
+      const token = genRes.body.token;
+      const itemId = wishlist.items[0]._id;
+      const url = `/api/public/invite/${token}/claim/${itemId}`;
+      const { request: guest } = createUnauthenticatedRequest();
+      const bobAgent = await loginAs(bob);
+
+      const [guestRes, bobRes] = await Promise.all([
+        guest.post(url).send({ claimerName: 'Guest' }),
+        bobAgent.post(url)
+      ]);
+
+      const successCount = [guestRes, bobRes].filter(r => r.status === 200).length;
+      expect(successCount).toBe(1);
+
+      const final = await Wishlist.findById(wishlist._id);
+      const status = final.items[0].status;
+      // Exactly one claim type recorded — never both
+      const hasAnonymous = !!status.isAnonymousClaim;
+      const hasAuthed = !!status.claimedBy;
+      expect(hasAnonymous !== hasAuthed).toBe(true);
     });
 
     it('should handle rapid sequential claims correctly', async () => {

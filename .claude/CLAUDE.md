@@ -128,17 +128,16 @@ terraform plan      # Review infrastructure changes
 terraform apply     # Apply infrastructure changes (confirm when prompted)
 ```
 
-2. **Then, deploy the application**:
-```bash
-# Deploy both frontend and backend
-./deploy.sh
+2. **Then, deploy the application** via GitHub Actions:
 
-# Deploy only frontend (S3/CloudFront)
-./deploy.sh Frontend
+A push to `main` runs `.github/workflows/deploy.yml`, which path-filters
+backend and frontend so only the changed component deploys. To trigger a
+manual deploy, use Actions → Deploy → Run workflow and choose
+`both` / `backend` / `frontend`.
 
-# Deploy only backend (ECS)
-./deploy.sh Backend
-```
+The workflow authenticates to AWS via OIDC (`terraform/github_oidc.tf`).
+After `terraform apply`, set these as repo Variables: `AWS_DEPLOY_ROLE_ARN`,
+`FRONTEND_S3_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`.
 
 ### Infrastructure (Terraform)
 ```bash
@@ -357,7 +356,9 @@ The seed script (`backend/scripts/seed.js`):
 - docker-compose.yml for local development includes MongoDB
 
 ### CI/CD
-- Use `./deploy.sh` for manual deployments
+- `.github/workflows/test.yml` runs Jest + frontend build on PRs and pushes to `main`
+- `.github/workflows/deploy.yml` deploys on push to `main` (path-filtered) or `workflow_dispatch`
 - Deployment builds images and pushes to AWS ECR (backend) / S3 (frontend)
+- Authentication uses GitHub OIDC against the role in `terraform/github_oidc.tf` — no AWS keys in repo secrets
 - Terraform manages infrastructure state
 - MongoDB Atlas requires IP whitelisting for security

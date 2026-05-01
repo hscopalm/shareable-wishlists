@@ -6,8 +6,10 @@ const ActivityLog = require('../models/ActivityLog');
 // Get all lists for current user
 router.get('/', async (req, res) => {
   try {
+    // Tiebreak on _id so two lists created in the same millisecond
+    // still sort deterministically by insertion order.
     const wishlists = await Wishlist.find({ user: req.user._id })
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1, _id: -1 });
     res.json(wishlists);
   } catch (error) {
     res.status(500).json({ message: error.message });

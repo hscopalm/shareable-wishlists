@@ -6,10 +6,19 @@ const Wishlist = require('../models/Wishlist');
 const { sendEmail, getShareInviteEmail } = require('../utils/emailService');
 const ActivityLog = require('../models/ActivityLog');
 
+// Basic RFC-5322-ish email validation. Catches obvious typos without
+// pretending to be a real address verifier.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 // Share a list with a user
 router.post('/share/:listId', async (req, res) => {
   try {
-    const { email } = req.body;
+    const rawEmail = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+    if (!rawEmail || !EMAIL_RE.test(rawEmail)) {
+      return res.status(400).json({ message: 'A valid email address is required' });
+    }
+    const email = rawEmail.toLowerCase();
+
     const wishlist = await Wishlist.findOne({
       _id: req.params.listId,
       user: req.user._id
@@ -19,12 +28,12 @@ router.post('/share/:listId', async (req, res) => {
       return res.status(404).json({ message: 'List not found' });
     }
 
-    let userToShare = await User.findOne({ email: email.toLowerCase() });
+    let userToShare = await User.findOne({ email });
 
     if (!userToShare) {
       // Create a placeholder user instead of a pending share
       userToShare = new User({
-        email: email.toLowerCase(),
+        email,
         isPending: true
       });
       await userToShare.save();
@@ -179,49 +188,73 @@ router.get('/share/shared-with-me', async (req, res) => {
   }
 });
 
-// Claim/unclaim an item in a shared list
+// Claim/unclaim an item in a shared list.
+// Uses an atomic findOneAndUpdate so two simultaneous claims can't both win
+// the race; the document filter requires the item to actually be unclaimed
+// (or claimed by the caller, for unclaim) at the moment of the write.
 router.post('/share/claim/:listId/:itemId', async (req, res) => {
   try {
-    const wishlist = await Wishlist.findOne({
-      _id: req.params.listId,
-      sharedWith: req.user._id
-    });
+    const { listId, itemId } = req.params;
+    const userId = req.user._id;
 
-    if (!wishlist) {
+    // Fast existence/auth check so we can return the right 404 vs 400.
+    const list = await Wishlist.findOne({ _id: listId, sharedWith: userId }, { 'items._id': 1, 'items.status': 1 });
+    if (!list) {
       return res.status(404).json({ message: 'List not found or not shared with you' });
     }
-
-    const item = wishlist.items.id(req.params.itemId);
-    if (!item) {
+    const existingItem = list.items.id(itemId);
+    if (!existingItem) {
       return res.status(404).json({ message: 'Item not found' });
     }
 
-    // If item is already claimed by someone else, prevent claiming
-    if (item.status?.claimedBy && item.status.claimedBy.toString() !== req.user._id.toString()) {
+    const claimerId = existingItem.status?.claimedBy?.toString();
+    const isMine = claimerId === userId.toString();
+
+    let updateResult;
+    if (isMine) {
+      // Atomic unclaim — only succeeds if I'm still the claimer.
+      updateResult = await Wishlist.findOneAndUpdate(
+        {
+          _id: listId,
+          sharedWith: userId,
+          items: { $elemMatch: { _id: itemId, 'status.claimedBy': userId } }
+        },
+        { $set: { 'items.$.status': {} } },
+        { new: true }
+      );
+    } else {
+      // Atomic claim — only succeeds if no one has claimed yet.
+      updateResult = await Wishlist.findOneAndUpdate(
+        {
+          _id: listId,
+          sharedWith: userId,
+          items: {
+            $elemMatch: {
+              _id: itemId,
+              $and: [
+                { $or: [{ 'status.claimedBy': { $exists: false } }, { 'status.claimedBy': null }] },
+                { $or: [{ 'status.isAnonymousClaim': { $exists: false } }, { 'status.isAnonymousClaim': false }] }
+              ]
+            }
+          }
+        },
+        {
+          $set: {
+            'items.$.status.claimedBy': userId,
+            'items.$.status.claimedAt': new Date()
+          }
+        },
+        { new: true }
+      );
+    }
+
+    if (!updateResult) {
       return res.status(400).json({ message: 'Item already claimed by someone else' });
     }
 
-    // Toggle claim status
-    if (item.status?.claimedBy?.toString() === req.user._id.toString()) {
-      // Unclaim
-      item.status = {};
-    } else {
-      // Claim
-      item.status = {
-        claimedBy: req.user._id,
-        claimedAt: new Date()
-      };
-    }
-
-    await wishlist.save();
-    
-    // Fetch the updated wishlist with populated claimer info
-    const updatedWishlist = await Wishlist.findById(wishlist._id)
+    const populated = await Wishlist.findById(listId)
       .populate('items.status.claimedBy', 'name email picture');
-    
-    // Find and return the updated item
-    const updatedItem = updatedWishlist.items.id(item._id);
-    res.json(updatedItem);
+    res.json(populated.items.id(itemId));
   } catch (error) {
     console.error('Error claiming/unclaiming item:', error);
     res.status(500).json({ message: error.message });
