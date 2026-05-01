@@ -28,6 +28,7 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import WishlistItem from '../components/WishlistItem';
+import MailingAddressCard from '../components/MailingAddressCard';
 import { getPublicList, joinListViaInvite, claimItemPublic } from '../services/api';
 import { colors } from '../theme';
 
@@ -282,6 +283,8 @@ function InvitePage() {
             </Typography>
           </Box>
         )}
+
+        <MailingAddressCard address={list.mailingAddress} />
       </Box>
 
       {/* Action / Status Bar */}

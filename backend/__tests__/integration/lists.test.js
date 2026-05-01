@@ -95,6 +95,32 @@ describe('Lists Routes', () => {
       expect(new Date(res.body.event_date).toDateString()).toBe(eventDate.toDateString());
     });
 
+    it('should persist a mailing address when provided', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const agent = await loginAs(alice);
+
+      const mailingAddress = {
+        recipientName: 'Alice Doe',
+        line1: '123 Main St',
+        line2: 'Apt 4',
+        city: 'Portland',
+        state: 'OR',
+        postalCode: '97201',
+        country: 'USA',
+      };
+
+      const res = await agent
+        .post('/api/lists')
+        .send({ name: 'Registry', mailingAddress });
+
+      expect(res.status).toBe(201);
+      expect(res.body.mailingAddress).toMatchObject(mailingAddress);
+
+      const saved = await Wishlist.findById(res.body._id);
+      expect(saved.mailingAddress.line1).toBe('123 Main St');
+      expect(saved.mailingAddress.recipientName).toBe('Alice Doe');
+    });
+
     it('should fail without required name field', async () => {
       const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
       const agent = await loginAs(alice);
@@ -189,6 +215,51 @@ describe('Lists Routes', () => {
       expect(res.status).toBe(200);
       expect(res.body.name).toBe('Updated Name');
       expect(res.body.description).toBe('New description');
+    });
+
+    it('should update mailing address and return it on GET to shared users', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createSharedWishlist(alice, [bob], { name: 'Registry' });
+      const ownerAgent = await loginAs(alice);
+
+      const mailingAddress = {
+        recipientName: 'Alice Doe',
+        line1: '500 Park Ave',
+        city: 'New York',
+        state: 'NY',
+        postalCode: '10022',
+        country: 'USA',
+      };
+
+      const updateRes = await ownerAgent
+        .put(`/api/lists/${wishlist._id}`)
+        .send({ name: 'Registry', mailingAddress });
+
+      expect(updateRes.status).toBe(200);
+      expect(updateRes.body.mailingAddress).toMatchObject(mailingAddress);
+
+      const sharedAgent = await loginAs(bob);
+      const getRes = await sharedAgent.get(`/api/lists/${wishlist._id}`);
+      expect(getRes.status).toBe(200);
+      expect(getRes.body.list.mailingAddress).toMatchObject(mailingAddress);
+    });
+
+    it('should clear mailing address when sent as empty object', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlist(alice, {
+        name: 'Registry',
+        mailingAddress: { line1: '1 First St', city: 'Seattle' },
+      });
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/lists/${wishlist._id}`)
+        .send({ name: 'Registry', mailingAddress: {} });
+
+      expect(res.status).toBe(200);
+      const saved = await Wishlist.findById(wishlist._id);
+      expect(saved.mailingAddress.line1).toBeFalsy();
+      expect(saved.mailingAddress.city).toBeFalsy();
     });
 
     it('should not allow shared user to update list', async () => {

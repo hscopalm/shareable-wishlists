@@ -34,10 +34,13 @@ import {
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
+import MailingAddressFields from '../components/MailingAddressFields';
+import MailingAddressCard from '../components/MailingAddressCard';
 import { useList } from '../contexts/ListContext';
 import { deleteWishlistItem, fetchListItems, claimItem, updateList } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { colors } from '../theme';
+import { EMPTY_ADDRESS, hasMailingAddress } from '../utils/address';
 
 function WishlistPage() {
   const { id: listId } = useParams();
@@ -50,7 +53,8 @@ function WishlistPage() {
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [editFormData, setEditFormData] = useState({ name: '', description: '', event_date: '' });
+  const [editFormData, setEditFormData] = useState({ name: '', description: '', event_date: '', mailingAddress: { ...EMPTY_ADDRESS } });
+  const [showAddressFields, setShowAddressFields] = useState(false);
   const [showClaimedItems, setShowClaimedItems] = useState(() => {
     return localStorage.getItem('showClaimedItems') === 'true';
   });
@@ -103,11 +107,14 @@ function WishlistPage() {
 
   const openEditDialogWithHistory = useCallback(() => {
     if (currentList) {
+      const address = { ...EMPTY_ADDRESS, ...(currentList.mailingAddress || {}) };
       setEditFormData({
         name: currentList.name || '',
         description: currentList.description || '',
-        event_date: currentList.event_date || ''
+        event_date: currentList.event_date || '',
+        mailingAddress: address,
       });
+      setShowAddressFields(hasMailingAddress(currentList.mailingAddress));
       window.history.pushState({ dialog: 'edit' }, '');
       setOpenEditDialog(true);
     }
@@ -381,6 +388,8 @@ function WishlistPage() {
             </Typography>
           </Box>
         )}
+
+        <MailingAddressCard address={currentList?.mailingAddress} />
       </Box>
 
       {/* Action Bar */}
@@ -679,6 +688,19 @@ function WishlistPage() {
                 onChange={(e) => setEditFormData({ ...editFormData, event_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
               />
+              <Button
+                onClick={() => setShowAddressFields((v) => !v)}
+                size="small"
+                sx={{ alignSelf: 'flex-start', textTransform: 'none', color: colors.primary }}
+              >
+                {showAddressFields ? 'Hide mailing address' : 'Add a mailing address (optional)'}
+              </Button>
+              <Collapse in={showAddressFields} unmountOnExit>
+                <MailingAddressFields
+                  value={editFormData.mailingAddress}
+                  onChange={(mailingAddress) => setEditFormData({ ...editFormData, mailingAddress })}
+                />
+              </Collapse>
             </Box>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 3 }}>
