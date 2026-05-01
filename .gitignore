@@ -150,3 +150,6 @@ terraform.rc
 deploy-images.ps1
 .env.*
 frontend/build/
+
+# Claude Code worktrees
+.claude/worktrees/
