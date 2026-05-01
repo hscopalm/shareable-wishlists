@@ -25,9 +25,9 @@ import { colors } from '../theme';
 
 function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
   const { user } = useAuth();
-  const isClaimedByMe = item.status?.claimedBy?._id === user?._id;
-  const isClaimedByOther = item.status?.claimedBy && !isClaimedByMe;
   const claimer = item.status?.claimedBy;
+  const isClaimedByMe = !!(claimer && user && claimer._id === user._id);
+  const isClaimedByOther = !!(claimer && !isClaimedByMe);
   const isClaimed = isClaimedByMe || isClaimedByOther;
   // Only show claimed styling on shared lists - owners should never see items as claimed
   const showClaimedStyle = isClaimed && isSharedList;

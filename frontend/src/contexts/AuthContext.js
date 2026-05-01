@@ -35,9 +35,20 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  const login = () => {
+  const login = (redirectUrl = null) => {
+    if (redirectUrl) {
+      sessionStorage.setItem('postLoginRedirect', redirectUrl);
+    }
     const baseUrl = window.location.origin;
     window.location.href = `${baseUrl}/api/auth/google`;
+  };
+
+  const getPostLoginRedirect = () => {
+    const redirect = sessionStorage.getItem('postLoginRedirect');
+    if (redirect) {
+      sessionStorage.removeItem('postLoginRedirect');
+    }
+    return redirect;
   };
 
   const logout = async () => {
@@ -50,12 +61,13 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      login, 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      login,
       logout,
-      refreshAuth: checkAuth  // Expose the refresh function
+      refreshAuth: checkAuth,
+      getPostLoginRedirect
     }}>
       {children}
     </AuthContext.Provider>

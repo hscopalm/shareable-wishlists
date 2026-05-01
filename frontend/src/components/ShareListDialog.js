@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -12,15 +12,31 @@ import {
   Alert,
   Avatar,
   Chip,
+  Divider,
+  Switch,
+  FormControlLabel,
+  Tooltip,
   alpha,
 } from '@mui/material';
 import {
   Delete as DeleteIcon,
   PersonAdd as PersonAddIcon,
   Schedule as ScheduleIcon,
+  Link as LinkIcon,
+  ContentCopy as CopyIcon,
+  Refresh as RefreshIcon,
+  LinkOff as LinkOffIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
-import { shareList, getSharedUsers, unshareList } from '../services/api';
+import {
+  shareList,
+  getSharedUsers,
+  unshareList,
+  getInviteLinkStatus,
+  generateInviteLink,
+  disableInviteLink,
+  setAnonymousClaims,
+} from '../services/api';
 import { useList } from '../contexts/ListContext';
 import { colors } from '../theme';
 
@@ -29,6 +45,11 @@ function ShareListDialog({ open, onClose, listId }) {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [sharedUsers, setSharedUsers] = useState([]);
+  const [inviteLink, setInviteLink] = useState(null);
+  const [inviteLinkEnabled, setInviteLinkEnabled] = useState(false);
+  const [allowAnonymous, setAllowAnonymous] = useState(false);
+  const inviteLinkInputRef = useRef(null);
+  const [copied, setCopied] = useState(false);
   const { currentList } = useList();
 
   useEffect(() => {
@@ -82,11 +103,98 @@ function ShareListDialog({ open, onClose, listId }) {
     }
   }, [listId]);
 
+  const loadInviteLinkStatus = useCallback(async () => {
+    if (!listId) return;
+    try {
+      const data = await getInviteLinkStatus(listId);
+      setInviteLinkEnabled(data.enabled);
+      setInviteLink(data.link);
+      setAllowAnonymous(data.allowAnonymousClaims);
+    } catch (error) {
+      console.error('Error loading invite link status:', error);
+    }
+  }, [listId]);
+
   useEffect(() => {
     if (open) {
+      setInviteLink(null);
+      setInviteLinkEnabled(false);
+      setAllowAnonymous(false);
+      setCopied(false);
       loadSharedUsers();
+      loadInviteLinkStatus();
     }
-  }, [open, loadSharedUsers]);
+  }, [open, listId, loadSharedUsers, loadInviteLinkStatus]);
+
+  const handleGenerateLink = async () => {
+    try {
+      setError('');
+      const data = await generateInviteLink(listId);
+      setInviteLink(data.link);
+      setInviteLinkEnabled(true);
+      setSuccess('Invite link generated');
+    } catch (error) {
+      setError('Failed to generate invite link');
+    }
+  };
+
+  const handleDisableLink = async () => {
+    try {
+      setError('');
+      await disableInviteLink(listId);
+      setInviteLinkEnabled(false);
+      setSuccess('Invite link disabled');
+    } catch (error) {
+      setError('Failed to disable invite link');
+    }
+  };
+
+  const handleCopyLink = async () => {
+    if (!inviteLink) return;
+
+    const writeViaFallback = () => {
+      const input = inviteLinkInputRef.current;
+      if (!input) return false;
+      try {
+        input.focus();
+        input.select();
+        input.setSelectionRange(0, inviteLink.length);
+        return document.execCommand('copy');
+      } catch {
+        return false;
+      }
+    };
+
+    let ok = false;
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(inviteLink);
+        ok = true;
+      } else {
+        ok = writeViaFallback();
+      }
+    } catch {
+      ok = writeViaFallback();
+    }
+
+    if (ok) {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } else {
+      setError('Could not copy link. Select and copy it manually.');
+    }
+  };
+
+  const handleToggleAnonymous = async (e) => {
+    try {
+      setError('');
+      const allow = e.target.checked;
+      await setAnonymousClaims(listId, allow);
+      setAllowAnonymous(allow);
+    } catch (error) {
+      setError('Failed to update anonymous claims setting');
+    }
+  };
 
   const handleUnshare = async (userId) => {
     try {
@@ -137,6 +245,94 @@ function ShareListDialog({ open, onClose, listId }) {
             {success}
           </Alert>
         )}
+
+        <Box sx={{ mb: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1.5, color: colors.text.secondary }}>
+            Share via Link
+          </Typography>
+
+          {inviteLinkEnabled && inviteLink ? (
+            <>
+              <TextField
+                fullWidth
+                value={inviteLink}
+                size="small"
+                inputRef={inviteLinkInputRef}
+                onFocus={(e) => e.target.select()}
+                InputProps={{
+                  readOnly: true,
+                  endAdornment: (
+                    <Tooltip title={copied ? 'Copied!' : 'Copy link'}>
+                      <IconButton
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={handleCopyLink}
+                        edge="end"
+                        size="small"
+                      >
+                        <CopyIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  ),
+                }}
+                sx={{ mb: 1 }}
+              />
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                <Button
+                  size="small"
+                  startIcon={<RefreshIcon />}
+                  onClick={handleGenerateLink}
+                  sx={{ color: colors.text.secondary }}
+                >
+                  Regenerate
+                </Button>
+                <Button
+                  size="small"
+                  startIcon={<LinkOffIcon />}
+                  onClick={handleDisableLink}
+                  sx={{ color: colors.error }}
+                >
+                  Disable Link
+                </Button>
+              </Box>
+            </>
+          ) : (
+            <Button
+              variant="outlined"
+              startIcon={<LinkIcon />}
+              onClick={handleGenerateLink}
+              fullWidth
+              sx={{ py: 1.25 }}
+            >
+              Generate Invite Link
+            </Button>
+          )}
+
+          <FormControlLabel
+            control={
+              <Switch
+                checked={allowAnonymous}
+                onChange={handleToggleAnonymous}
+                size="small"
+                disabled={!inviteLinkEnabled}
+              />
+            }
+            label={
+              <Box>
+                <Typography variant="body2">Allow claims without sign-in</Typography>
+                <Typography variant="caption" sx={{ color: colors.text.muted }}>
+                  Let people claim items without creating an account
+                </Typography>
+              </Box>
+            }
+            sx={{ mt: 1.5, ml: 0 }}
+          />
+        </Box>
+
+        <Divider sx={{ mb: 3 }} />
+
+        <Typography variant="subtitle2" sx={{ mb: 1.5, color: colors.text.secondary }}>
+          Invite by Email
+        </Typography>
 
         <form onSubmit={handleShare}>
           <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>

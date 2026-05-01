@@ -76,3 +76,43 @@ export const claimItem = async (listId, itemId) => {
   const response = await api.post(`/api/share/claim/${listId}/${itemId}`, {});
   return response.data;
 };
+
+// Public invite link endpoints
+export const getPublicList = async (token) => {
+  const response = await api.get(`/api/public/invite/${token}`);
+  return response.data;
+};
+
+export const joinListViaInvite = async (token) => {
+  const response = await api.post(`/api/public/invite/${token}/join`);
+  return response.data;
+};
+
+export const claimItemPublic = async (token, itemId, claimerInfo = null) => {
+  const response = await api.post(
+    `/api/public/invite/${token}/claim/${itemId}`,
+    claimerInfo
+  );
+  return response.data;
+};
+
+// Invite link management (owner-only)
+export const getInviteLinkStatus = async (listId) => {
+  const response = await api.get(`/api/share/${listId}/invite-link`);
+  return response.data;
+};
+
+export const generateInviteLink = async (listId) => {
+  const response = await api.post(`/api/share/${listId}/invite-link`);
+  return response.data;
+};
+
+export const disableInviteLink = async (listId) => {
+  const response = await api.delete(`/api/share/${listId}/invite-link`);
+  return response.data;
+};
+
+export const setAnonymousClaims = async (listId, allow) => {
+  const response = await api.put(`/api/share/${listId}/anonymous-claims`, { allow });
+  return response.data;
+};
