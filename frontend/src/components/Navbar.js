@@ -72,6 +72,7 @@ function Navbar() {
         backgroundColor: alpha(colors.background.main, 0.8),
         backdropFilter: 'blur(20px)',
         borderBottom: `1px solid ${colors.border}`,
+        color: colors.text.primary,
       }}
     >
       <Toolbar sx={{ justifyContent: 'space-between', gap: 2, py: 1 }}>

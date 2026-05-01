@@ -1,33 +1,34 @@
 import { createTheme, alpha } from '@mui/material';
 
-// Modern color palette with purple/violet accents
+// Wedding-registry palette: warm ivory base, dusty rose primary,
+// sage and champagne accents. Light, airy, but still distinct.
 const colors = {
-  primary: '#8B5CF6', // Violet
-  primaryLight: '#A78BFA',
-  primaryDark: '#7C3AED',
-  secondary: '#EC4899', // Pink
-  accent: '#06B6D4', // Cyan
-  success: '#10B981', // Emerald
-  warning: '#F59E0B', // Amber
-  error: '#EF4444', // Red
+  primary: '#A05561', // Deeper dusty rose
+  primaryLight: '#C48A93',
+  primaryDark: '#7A3E48',
+  secondary: '#9CAF88', // Sage green
+  accent: '#C9A961', // Champagne gold
+  success: '#7BA098', // Muted teal-sage
+  warning: '#D4A574', // Muted amber
+  error: '#C97D7D', // Dusty terracotta
   background: {
-    main: '#0F0F1A', // Deep dark
-    elevated: '#1A1A2E', // Slightly lighter
-    card: '#16162A', // Card background
-    glass: 'rgba(26, 26, 46, 0.7)', // Glass effect
+    main: '#FAF6F1', // Warm ivory
+    elevated: '#FFFFFF', // Pure white card surface
+    card: '#FFFFFF',
+    glass: 'rgba(255, 255, 255, 0.75)',
   },
   text: {
-    primary: '#F8FAFC',
-    secondary: '#94A3B8',
-    muted: '#64748B',
+    primary: '#3D2E2A', // Warm dark brown
+    secondary: '#6B5B58',
+    muted: '#9C8E8B',
   },
-  border: 'rgba(139, 92, 246, 0.15)',
-  borderHover: 'rgba(139, 92, 246, 0.3)',
+  border: 'rgba(160, 85, 97, 0.2)',
+  borderHover: 'rgba(160, 85, 97, 0.45)',
 };
 
 export const theme = createTheme({
   palette: {
-    mode: 'dark',
+    mode: 'light',
     primary: {
       main: colors.primary,
       light: colors.primaryLight,
@@ -87,10 +88,11 @@ export const theme = createTheme({
           backgroundColor: colors.background.card,
           borderRadius: 16,
           border: `1px solid ${colors.border}`,
-          boxShadow: 'none',
+          boxShadow: `0 2px 8px ${alpha('#3D2E2A', 0.04)}`,
           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
           '&:hover': {
             borderColor: colors.borderHover,
+            boxShadow: `0 6px 20px ${alpha('#3D2E2A', 0.08)}`,
           },
         },
       },
@@ -106,10 +108,11 @@ export const theme = createTheme({
         },
         contained: {
           background: `linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%)`,
-          boxShadow: `0 4px 15px ${alpha(colors.primary, 0.4)}`,
+          color: '#FFFFFF',
+          boxShadow: `0 4px 14px ${alpha(colors.primary, 0.3)}`,
           '&:hover': {
             background: `linear-gradient(135deg, ${colors.primaryLight} 0%, ${colors.primary} 100%)`,
-            boxShadow: `0 6px 20px ${alpha(colors.primary, 0.5)}`,
+            boxShadow: `0 6px 18px ${alpha(colors.primary, 0.4)}`,
             transform: 'translateY(-1px)',
           },
         },
@@ -129,7 +132,7 @@ export const theme = createTheme({
           borderRadius: 20,
           border: `1px solid ${colors.border}`,
           backdropFilter: 'blur(20px)',
-          boxShadow: `0 25px 50px -12px ${alpha('#000', 0.5)}`,
+          boxShadow: `0 25px 50px -12px ${alpha('#3D2E2A', 0.18)}`,
         },
       },
     },
@@ -181,7 +184,7 @@ export const theme = createTheme({
           backgroundImage: 'none',
         },
         elevation1: {
-          boxShadow: `0 4px 20px ${alpha('#000', 0.3)}`,
+          boxShadow: `0 4px 16px ${alpha('#3D2E2A', 0.06)}`,
         },
       },
     },
@@ -206,11 +209,14 @@ export const theme = createTheme({
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
-          backgroundColor: colors.background.elevated,
-          border: `1px solid ${colors.border}`,
+          backgroundColor: alpha(colors.text.primary, 0.95),
+          color: '#FFFFFF',
           borderRadius: 8,
           fontSize: '0.8rem',
           padding: '8px 12px',
+        },
+        arrow: {
+          color: alpha(colors.text.primary, 0.95),
         },
       },
     },
