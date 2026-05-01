@@ -35,12 +35,13 @@ export const AuthProvider = ({ children }) => {
     checkAuth();
   }, [checkAuth]);
 
-  const login = (redirectUrl = null) => {
+  const login = (redirectUrl = null, userId = null) => {
     if (redirectUrl) {
       sessionStorage.setItem('postLoginRedirect', redirectUrl);
     }
     const baseUrl = window.location.origin;
-    window.location.href = `${baseUrl}/api/auth/google`;
+    const query = userId ? `?userId=${encodeURIComponent(userId)}` : '';
+    window.location.href = `${baseUrl}/api/auth/google${query}`;
   };
 
   const getPostLoginRedirect = () => {
