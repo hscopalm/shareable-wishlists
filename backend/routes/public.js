@@ -64,6 +64,7 @@ router.get('/invite/:token', async (req, res) => {
         name: wishlist.name,
         description: wishlist.description,
         event_date: wishlist.event_date,
+        mailingAddress: wishlist.mailingAddress,
         owner: {
           name: wishlist.user.name,
           picture: wishlist.user.picture

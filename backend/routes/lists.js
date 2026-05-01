@@ -21,6 +21,7 @@ router.post('/', async (req, res) => {
       name: req.body.name,
       description: req.body.description,
       event_date: req.body.event_date,
+      mailingAddress: req.body.mailingAddress,
       user: req.user._id,
       items: []
     });
@@ -90,6 +91,7 @@ router.put('/:id', async (req, res) => {
     wishlist.name = req.body.name;
     wishlist.description = req.body.description;
     wishlist.event_date = req.body.event_date;
+    wishlist.mailingAddress = req.body.mailingAddress;
 
     const updatedWishlist = await wishlist.save();
     res.json(updatedWishlist);

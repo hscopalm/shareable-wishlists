@@ -31,13 +31,16 @@ import { useNavigate } from 'react-router-dom';
 import { deleteList, createList, updateList } from '../services/api';
 import { formatDistanceToNow } from 'date-fns';
 import { colors } from '../theme';
+import { EMPTY_ADDRESS } from '../utils/address';
+import MailingAddressFields from '../components/MailingAddressFields';
 
 function ListsPage() {
   const { lists, refreshLists: loadLists, setCurrentList } = useList();
   const navigate = useNavigate();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingList, setEditingList] = useState(null);
-  const [formData, setFormData] = useState({ name: '', description: '', event_date: '' });
+  const [formData, setFormData] = useState({ name: '', description: '', event_date: '', mailingAddress: { ...EMPTY_ADDRESS } });
+  const [showAddressFields, setShowAddressFields] = useState(false);
   const [hoveredCard, setHoveredCard] = useState(null);
   const [showArchived, setShowArchived] = useState(false);
 
@@ -52,18 +55,22 @@ function ListsPage() {
 
   const handleCreateClick = () => {
     setEditingList(null);
-    setFormData({ name: '', description: '', event_date: '' });
+    setFormData({ name: '', description: '', event_date: '', mailingAddress: { ...EMPTY_ADDRESS } });
+    setShowAddressFields(false);
     setDialogOpen(true);
   };
 
   const handleEditClick = (event, list) => {
     event.stopPropagation();
     setEditingList(list);
+    const address = { ...EMPTY_ADDRESS, ...(list.mailingAddress || {}) };
     setFormData({
       name: list.name,
       description: list.description || '',
-      event_date: list.event_date || ''
+      event_date: list.event_date || '',
+      mailingAddress: address,
     });
+    setShowAddressFields(Object.values(list.mailingAddress || {}).some((v) => typeof v === 'string' && v.trim().length > 0));
     setDialogOpen(true);
   };
 
@@ -93,8 +100,9 @@ function ListsPage() {
       }
       await loadLists();
 
-      setFormData({ name: '', description: '', event_date: '' });
+      setFormData({ name: '', description: '', event_date: '', mailingAddress: { ...EMPTY_ADDRESS } });
       setEditingList(null);
+      setShowAddressFields(false);
       setDialogOpen(false);
     } catch (error) {
       console.error('Error saving list:', error);
@@ -562,6 +570,19 @@ function ListsPage() {
                 onChange={(e) => setFormData({ ...formData, event_date: e.target.value })}
                 InputLabelProps={{ shrink: true }}
               />
+              <Button
+                onClick={() => setShowAddressFields((v) => !v)}
+                size="small"
+                sx={{ alignSelf: 'flex-start', textTransform: 'none', color: colors.primary }}
+              >
+                {showAddressFields ? 'Hide mailing address' : 'Add a mailing address (optional)'}
+              </Button>
+              <Collapse in={showAddressFields} unmountOnExit>
+                <MailingAddressFields
+                  value={formData.mailingAddress}
+                  onChange={(mailingAddress) => setFormData({ ...formData, mailingAddress })}
+                />
+              </Collapse>
             </Box>
           </DialogContent>
           <DialogActions sx={{ px: 3, pb: 3 }}>
