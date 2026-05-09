@@ -1,3 +1,34 @@
+# Redirect apex (giftguru.cc) -> www.giftguru.cc so there's a single canonical host
+resource "aws_cloudfront_function" "redirect_apex" {
+  name    = "${var.app_name}-redirect-apex-${var.environment}"
+  runtime = "cloudfront-js-2.0"
+  publish = true
+  code    = <<-EOT
+    function handler(event) {
+      var req = event.request;
+      var host = req.headers.host && req.headers.host.value;
+      if (host === 'giftguru.cc') {
+        var qs = '';
+        if (req.querystring) {
+          var parts = [];
+          for (var k in req.querystring) {
+            parts.push(k + '=' + req.querystring[k].value);
+          }
+          if (parts.length) qs = '?' + parts.join('&');
+        }
+        return {
+          statusCode: 301,
+          statusDescription: 'Moved Permanently',
+          headers: {
+            location: { value: 'https://www.giftguru.cc' + req.uri + qs }
+          }
+        };
+      }
+      return req;
+    }
+  EOT
+}
+
 # Origin Access Control for S3
 resource "aws_cloudfront_origin_access_control" "main" {
   name                              = "${var.app_name}-s3-oac-${var.environment}"
@@ -14,7 +45,7 @@ resource "aws_cloudfront_distribution" "main" {
   comment             = "${var.app_name} - ${var.environment}"
   default_root_object = "index.html"
   price_class         = "PriceClass_100" # US, Canada, Europe
-  aliases             = ["www.giftguru.cc"]
+  aliases             = ["giftguru.cc", "www.giftguru.cc"]
 
   # S3 origin for static frontend
   origin {
@@ -62,6 +93,11 @@ resource "aws_cloudfront_distribution" "main" {
       cookies {
         forward = "none"
       }
+    }
+
+    function_association {
+      event_type   = "viewer-request"
+      function_arn = aws_cloudfront_function.redirect_apex.arn
     }
 
     min_ttl     = 0
