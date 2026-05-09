@@ -5,7 +5,26 @@ on:
   push:
     branches: [main]
 
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      terraform: ${{ steps.filter.outputs.terraform }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            terraform:
+              - 'terraform/**'
+
   backend:
     name: Backend tests
     runs-on: ubuntu-latest
@@ -41,3 +60,85 @@ jobs:
 
       - run: npm ci
       - run: CI=true npm run build
+
+  terraform-plan:
+    name: Terraform plan
+    needs: changes
+    if: github.event_name == 'pull_request' && needs.changes.outputs.terraform == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: us-east-1
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+          terraform_wrapper: true
+
+      - run: terraform fmt -check -recursive
+        continue-on-error: true
+        id: fmt
+
+      - run: terraform init -input=false
+
+      - run: terraform validate -no-color
+
+      - id: plan
+        run: terraform plan -no-color -input=false -detailed-exitcode -out=tfplan
+        continue-on-error: true
+
+      - name: Comment plan on PR
+        if: steps.plan.outputs.exitcode != '0'
+        uses: actions/github-script@v7
+        env:
+          PLAN_STDOUT: ${{ steps.plan.outputs.stdout }}
+          PLAN_STDERR: ${{ steps.plan.outputs.stderr }}
+          PLAN_EXIT: ${{ steps.plan.outputs.exitcode }}
+          FMT_EXIT: ${{ steps.fmt.outcome }}
+        with:
+          script: |
+            const exit = process.env.PLAN_EXIT;
+            const failed = exit === '1';
+            const header = failed ? '### Terraform plan failed' : '### Terraform plan';
+            const fmtNote = process.env.FMT_EXIT === 'failure'
+              ? '\n> `terraform fmt` found formatting issues. Run `terraform fmt -recursive` locally.\n'
+              : '';
+            const body = process.env.PLAN_STDOUT || process.env.PLAN_STDERR || '(no output)';
+            const truncated = body.length > 60000
+              ? body.slice(0, 60000) + '\n\n... (truncated, see Actions log for full plan)'
+              : body;
+            const marker = '<!-- terraform-plan-comment -->';
+            const comment = `${marker}\n${header}${fmtNote}\n\n\`\`\`hcl\n${truncated}\n\`\`\``;
+
+            const { data: existing } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+            const prior = existing.find(c => c.body && c.body.includes(marker));
+            if (prior) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: prior.id,
+                body: comment,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: comment,
+              });
+            }
+
+      - name: Fail job if plan errored
+        if: steps.plan.outputs.exitcode == '1'
+        run: exit 1

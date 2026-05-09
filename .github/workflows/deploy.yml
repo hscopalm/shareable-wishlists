@@ -8,9 +8,9 @@ on:
       target:
         description: Which component to deploy
         required: true
-        default: both
+        default: all
         type: choice
-        options: [both, backend, frontend]
+        options: [all, backend, frontend, terraform]
 
 permissions:
   id-token: write
@@ -33,6 +33,7 @@ jobs:
     outputs:
       backend: ${{ steps.filter.outputs.backend }}
       frontend: ${{ steps.filter.outputs.frontend }}
+      terraform: ${{ steps.filter.outputs.terraform }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -43,13 +44,45 @@ jobs:
               - 'backend/**'
             frontend:
               - 'frontend/**'
+            terraform:
+              - 'terraform/**'
+
+  terraform:
+    name: Terraform apply
+    needs: changes
+    if: |
+      (github.event_name == 'push' && needs.changes.outputs.terraform == 'true') ||
+      (github.event_name == 'workflow_dispatch' && (inputs.target == 'all' || inputs.target == 'terraform'))
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ env.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+          terraform_wrapper: false
+
+      - run: terraform init -input=false
+
+      - run: terraform apply -auto-approve -input=false
 
   backend:
     name: Backend (ECR + ECS)
-    needs: changes
+    needs: [changes, terraform]
     if: |
-      (github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.target == 'both' || inputs.target == 'backend'))
+      always() &&
+      needs.terraform.result != 'failure' &&
+      needs.terraform.result != 'cancelled' &&
+      ((github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+       (github.event_name == 'workflow_dispatch' && (inputs.target == 'all' || inputs.target == 'backend')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -93,10 +126,13 @@ jobs:
 
   frontend:
     name: Frontend (S3 + CloudFront)
-    needs: changes
+    needs: [changes, terraform]
     if: |
-      (github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
-      (github.event_name == 'workflow_dispatch' && (inputs.target == 'both' || inputs.target == 'frontend'))
+      always() &&
+      needs.terraform.result != 'failure' &&
+      needs.terraform.result != 'cancelled' &&
+      ((github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+       (github.event_name == 'workflow_dispatch' && (inputs.target == 'all' || inputs.target == 'frontend')))
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

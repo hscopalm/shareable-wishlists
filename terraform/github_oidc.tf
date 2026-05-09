@@ -29,7 +29,9 @@ resource "aws_iam_role" "github_actions_deploy" {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
           StringLike = {
-            "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:ref:refs/heads/main"
+            # Any ref (branches, PRs, tags) on this repo can assume the role.
+            # Apply steps in workflows are gated by event/branch, not by IAM.
+            "token.actions.githubusercontent.com:sub" = "repo:${var.github_repo}:*"
           }
         }
       }
@@ -37,6 +39,11 @@ resource "aws_iam_role" "github_actions_deploy" {
   })
 }
 
+# Broad infra-management policy. The role is used by the deploy workflow to
+# (a) run `terraform apply` against everything in this directory and
+# (b) push images, sync the frontend bucket, and roll the ECS service.
+# Permissions are scoped by service, not by resource ARN, because Terraform
+# needs to create/destroy arbitrary resources within these services.
 resource "aws_iam_role_policy" "github_actions_deploy" {
   name = "${var.app_name}-github-actions-deploy-${var.environment}"
   role = aws_iam_role.github_actions_deploy.id
@@ -45,63 +52,27 @@ resource "aws_iam_role_policy" "github_actions_deploy" {
     Version = "2012-10-17"
     Statement = [
       {
-        Sid      = "EcrAuth"
-        Effect   = "Allow"
-        Action   = "ecr:GetAuthorizationToken"
+        Sid    = "TerraformInfra"
+        Effect = "Allow"
+        Action = [
+          "ec2:*",
+          "elasticloadbalancing:*",
+          "ecs:*",
+          "ecr:*",
+          "iam:*",
+          "logs:*",
+          "cloudfront:*",
+          "acm:*",
+          "s3:*",
+          "route53:*",
+          "resource-groups:*",
+          "tag:*",
+          "ssm:GetParameter",
+          "ssm:GetParameters",
+          "ssm:GetParametersByPath",
+          "sts:GetCallerIdentity"
+        ]
         Resource = "*"
-      },
-      {
-        Sid    = "EcrPushPull"
-        Effect = "Allow"
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:BatchGetImage",
-          "ecr:CompleteLayerUpload",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:InitiateLayerUpload",
-          "ecr:PutImage",
-          "ecr:UploadLayerPart"
-        ]
-        Resource = aws_ecr_repository.backend.arn
-      },
-      {
-        Sid    = "EcsDeploy"
-        Effect = "Allow"
-        Action = [
-          "ecs:UpdateService",
-          "ecs:DescribeServices"
-        ]
-        Resource = aws_ecs_service.backend.id
-      },
-      {
-        Sid    = "EcsPassRole"
-        Effect = "Allow"
-        Action = "iam:PassRole"
-        Resource = [
-          aws_iam_role.ecs_task_execution_role.arn,
-          aws_iam_role.ecs_task_role.arn
-        ]
-      },
-      {
-        Sid    = "S3FrontendSync"
-        Effect = "Allow"
-        Action = [
-          "s3:ListBucket",
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-          "s3:PutObjectAcl"
-        ]
-        Resource = [
-          aws_s3_bucket.frontend.arn,
-          "${aws_s3_bucket.frontend.arn}/*"
-        ]
-      },
-      {
-        Sid      = "CloudFrontInvalidate"
-        Effect   = "Allow"
-        Action   = "cloudfront:CreateInvalidation"
-        Resource = aws_cloudfront_distribution.main.arn
       }
     ]
   })
