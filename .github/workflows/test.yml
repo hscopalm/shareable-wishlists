@@ -98,7 +98,6 @@ jobs:
         continue-on-error: true
 
       - name: Comment plan on PR
-        if: steps.plan.outputs.exitcode != '0'
         uses: actions/github-script@v7
         env:
           PLAN_STDOUT: ${{ steps.plan.outputs.stdout }}
@@ -108,17 +107,27 @@ jobs:
         with:
           script: |
             const exit = process.env.PLAN_EXIT;
-            const failed = exit === '1';
-            const header = failed ? '### Terraform plan failed' : '### Terraform plan';
             const fmtNote = process.env.FMT_EXIT === 'failure'
               ? '\n> `terraform fmt` found formatting issues. Run `terraform fmt -recursive` locally.\n'
               : '';
-            const body = process.env.PLAN_STDOUT || process.env.PLAN_STDERR || '(no output)';
+            let header, body;
+            if (exit === '0') {
+              header = '### Terraform plan: no changes';
+              body = 'Infrastructure matches the configuration.';
+            } else if (exit === '2') {
+              header = '### Terraform plan';
+              body = process.env.PLAN_STDOUT || '(no output)';
+            } else {
+              header = '### Terraform plan failed';
+              body = process.env.PLAN_STDERR || process.env.PLAN_STDOUT || '(no output)';
+            }
             const truncated = body.length > 60000
               ? body.slice(0, 60000) + '\n\n... (truncated, see Actions log for full plan)'
               : body;
             const marker = '<!-- terraform-plan-comment -->';
-            const comment = `${marker}\n${header}${fmtNote}\n\n\`\`\`hcl\n${truncated}\n\`\`\``;
+            const comment = exit === '0'
+              ? `${marker}\n${header}${fmtNote}\n\n${truncated}`
+              : `${marker}\n${header}${fmtNote}\n\n\`\`\`hcl\n${truncated}\n\`\`\``;
 
             const { data: existing } = await github.rest.issues.listComments({
               owner: context.repo.owner,
