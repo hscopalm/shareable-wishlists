@@ -118,26 +118,28 @@ it('should call mongoose save method', ...)
 
 ### Deployment
 
-**Important**: Infrastructure must be deployed before the application. Follow this order:
-
-1. **First, deploy infrastructure (Terraform)**:
-```bash
-cd terraform
-terraform init      # Initialize Terraform (first time only)
-terraform plan      # Review infrastructure changes
-terraform apply     # Apply infrastructure changes (confirm when prompted)
-```
-
-2. **Then, deploy the application** via GitHub Actions:
-
 A push to `main` runs `.github/workflows/deploy.yml`, which path-filters
-backend and frontend so only the changed component deploys. To trigger a
-manual deploy, use Actions → Deploy → Run workflow and choose
-`both` / `backend` / `frontend`.
+`terraform/`, `backend/`, and `frontend/` so only the changed components
+deploy. Terraform applies first, then backend and frontend run in parallel.
+To trigger a manual deploy, use Actions → Deploy → Run workflow and choose
+`all` / `backend` / `frontend` / `terraform`.
+
+PRs that touch `terraform/` get a `terraform plan` posted as a sticky
+comment via `.github/workflows/test.yml`.
 
 The workflow authenticates to AWS via OIDC (`terraform/github_oidc.tf`).
-After `terraform apply`, set these as repo Variables: `AWS_DEPLOY_ROLE_ARN`,
+The deploy role has broad infra perms (it runs `terraform apply`), and its
+trust policy accepts any ref on this repo so the plan job works on PR
+branches. Repo Variables required: `AWS_DEPLOY_ROLE_ARN`,
 `FRONTEND_S3_BUCKET`, `CLOUDFRONT_DISTRIBUTION_ID`.
+
+To run Terraform locally instead:
+```bash
+cd terraform
+terraform init
+terraform plan
+terraform apply
+```
 
 ### Infrastructure (Terraform)
 ```bash
