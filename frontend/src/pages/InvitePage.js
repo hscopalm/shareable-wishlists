@@ -224,7 +224,7 @@ function InvitePage() {
         <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
           {error}
         </Typography>
-        <Button variant="contained" onClick={() => navigate('/login')}>
+        <Button variant="contained" onClick={() => navigate('/')}>
           Go to Gift Guru
         </Button>
       </Box>
