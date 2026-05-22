@@ -34,22 +34,28 @@ import {
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
+import ClaimQuantityDialog from '../components/ClaimQuantityDialog';
 import MailingAddressFields from '../components/MailingAddressFields';
 import MailingAddressCard from '../components/MailingAddressCard';
 import { useList } from '../contexts/ListContext';
+import { useAuth } from '../contexts/AuthContext';
 import { deleteWishlistItem, fetchListItems, claimItem, updateList } from '../services/api';
 import { useParams, useNavigate } from 'react-router-dom';
 import { colors } from '../theme';
 import { EMPTY_ADDRESS, hasMailingAddress } from '../utils/address';
+import { isMultiMode, isFullyClaimed } from '../utils/itemClaims';
 
 function WishlistPage() {
   const { id: listId } = useParams();
   const navigate = useNavigate();
   const { currentList, setCurrentList, isSharedList } = useList();
+  const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
+  const [claimDialogItem, setClaimDialogItem] = useState(null);
+  const [claimError, setClaimError] = useState(null);
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortDirection, setSortDirection] = useState('desc');
   const [openEditDialog, setOpenEditDialog] = useState(false);
@@ -210,11 +216,17 @@ function WishlistPage() {
   };
 
   const sortedItems = getSortedItems();
+  // For shared lists, partially-claimed multi-quantity items stay in the
+  // "available" section until fully claimed.
+  const isItemClaimed = (item) => {
+    if (isMultiMode(item)) return isFullyClaimed(item);
+    return !!item.status?.claimedBy;
+  };
   const unclaimedItems = isSharedList
-    ? sortedItems.filter(item => !item.status?.claimedBy)
+    ? sortedItems.filter(item => !isItemClaimed(item))
     : sortedItems;
   const claimedItems = isSharedList
-    ? sortedItems.filter(item => item.status?.claimedBy)
+    ? sortedItems.filter(item => isItemClaimed(item))
     : [];
 
   const SortButton = ({ field, icon: Icon, label }) => {
@@ -250,16 +262,39 @@ function WishlistPage() {
     );
   };
 
+  const applyClaimResponse = (itemId, updatedItem) => {
+    setItems(prevItems =>
+      prevItems.map(i =>
+        i._id === itemId
+          ? { ...i, status: updatedItem.status, claims: updatedItem.claims, quantity: updatedItem.quantity }
+          : i
+      )
+    );
+  };
+
   const handleClaimItem = async (item) => {
+    // Multi-quantity items route through the dialog; single-mode keeps the
+    // direct toggle so existing behavior is unchanged.
+    if (isMultiMode(item)) {
+      setClaimDialogItem(item);
+      return;
+    }
     try {
       const updatedItem = await claimItem(listId, item._id);
-      setItems(prevItems =>
-        prevItems.map(i =>
-          i._id === item._id ? { ...i, status: updatedItem.status } : i
-        )
-      );
+      applyClaimResponse(item._id, updatedItem);
     } catch (error) {
       console.error('Error claiming item:', error);
+    }
+  };
+
+  const handleClaimDialogSubmit = async (quantity) => {
+    if (!claimDialogItem) return;
+    try {
+      const updated = await claimItem(listId, claimDialogItem._id, quantity);
+      applyClaimResponse(claimDialogItem._id, updated);
+      setClaimDialogItem(null);
+    } catch (error) {
+      setClaimError(error.response?.data?.message || 'Failed to claim');
     }
   };
 
@@ -647,6 +682,33 @@ function WishlistPage() {
         onClose={closeShareDialog}
         listId={currentList?._id}
       />
+
+      {/* Claim quantity dialog (multi-mode items only) */}
+      <ClaimQuantityDialog
+        open={!!claimDialogItem}
+        onClose={() => { setClaimDialogItem(null); setClaimError(null); }}
+        item={claimDialogItem}
+        userId={user?._id}
+        onSubmit={handleClaimDialogSubmit}
+      />
+      {claimError && (
+        <Box sx={{ position: 'fixed', bottom: 24, left: 24, right: 24, zIndex: 9999 }}>
+          <Box
+            onClick={() => setClaimError(null)}
+            sx={{
+              p: 2,
+              borderRadius: '12px',
+              backgroundColor: alpha(colors.error, 0.95),
+              color: '#fff',
+              cursor: 'pointer',
+              maxWidth: 400,
+              mx: 'auto',
+            }}
+          >
+            {claimError}
+          </Box>
+        </Box>
+      )}
 
       {/* Edit List Dialog */}
       <Dialog

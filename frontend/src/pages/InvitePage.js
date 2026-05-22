@@ -28,9 +28,11 @@ import {
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import WishlistItem from '../components/WishlistItem';
+import ClaimQuantityDialog from '../components/ClaimQuantityDialog';
 import MailingAddressCard from '../components/MailingAddressCard';
 import { getPublicList, joinListViaInvite, claimItemPublic } from '../services/api';
 import { colors } from '../theme';
+import { isMultiMode, isFullyClaimed } from '../utils/itemClaims';
 
 function InvitePage() {
   const { token } = useParams();
@@ -56,11 +58,16 @@ function InvitePage() {
     localStorage.setItem('showClaimedItems', checked.toString());
   };
 
-  // Anonymous claim modal
+  // Anonymous single-mode claim modal (name only, one-shot)
   const [claimModalOpen, setClaimModalOpen] = useState(false);
   const [claimingItemId, setClaimingItemId] = useState(null);
   const [claimerName, setClaimerName] = useState('');
   const [claimError, setClaimError] = useState('');
+
+  // Quantity dialog for multi-mode items (authed + anonymous)
+  const [qtyDialogItem, setQtyDialogItem] = useState(null);
+  const [qtyAnonName, setQtyAnonName] = useState('');
+  const [qtyAnonNameError, setQtyAnonNameError] = useState('');
 
   const loadList = useCallback(async () => {
     try {
@@ -100,8 +107,12 @@ function InvitePage() {
   const allowAnonymousClaims = !!list?.allowAnonymousClaims;
   const isAuthed = !!user;
   const canClaim = isAuthed || allowAnonymousClaims;
-  const unclaimedItems = items.filter(i => !i.status?.claimedBy);
-  const claimedItems = items.filter(i => i.status?.claimedBy);
+  const isItemFullyClaimed = (i) => {
+    if (isMultiMode(i)) return isFullyClaimed(i);
+    return !!i.status?.claimedBy;
+  };
+  const unclaimedItems = items.filter(i => !isItemFullyClaimed(i));
+  const claimedItems = items.filter(i => isItemFullyClaimed(i));
 
   const handleSignIn = () => {
     login(`/invite/${token}`);
@@ -123,17 +134,34 @@ function InvitePage() {
     }
   };
 
+  const mergeUpdatedItem = (itemId, updated) => {
+    setItems(prev =>
+      prev.map(i => (i._id === itemId
+        ? { ...i, status: updated.status, claims: updated.claims, quantity: updated.quantity }
+        : i))
+    );
+  };
+
   const handleClaimItem = async (item) => {
+    // Multi-quantity items always go through the dialog regardless of auth.
+    if (isMultiMode(item)) {
+      setQtyDialogItem(item);
+      setQtyAnonName('');
+      setQtyAnonNameError('');
+      return;
+    }
+
     if (isAuthed) {
       try {
         const updated = await claimItemPublic(token, item._id);
-        setItems(prev => prev.map(i => (i._id === item._id ? { ...i, status: updated.status } : i)));
+        mergeUpdatedItem(item._id, updated);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to claim item');
       }
       return;
     }
 
+    // Anonymous single-mode flow keeps the existing one-shot name modal.
     if (!allowAnonymousClaims) return;
     setClaimingItemId(item._id);
     setClaimerName('');
@@ -148,12 +176,34 @@ function InvitePage() {
     }
     try {
       const updated = await claimItemPublic(token, claimingItemId, { claimerName: claimerName.trim() });
-      setItems(prev =>
-        prev.map(i => (i._id === claimingItemId ? { ...i, status: updated.status } : i))
-      );
+      mergeUpdatedItem(claimingItemId, updated);
       setClaimModalOpen(false);
     } catch (err) {
       setClaimError(err.response?.data?.message || 'Failed to claim item');
+    }
+  };
+
+  const submitQuantityClaim = async (quantity) => {
+    if (!qtyDialogItem) return;
+    const itemId = qtyDialogItem._id;
+    try {
+      if (isAuthed) {
+        const updated = await claimItemPublic(token, itemId, { quantity });
+        mergeUpdatedItem(itemId, updated);
+        setQtyDialogItem(null);
+        return;
+      }
+      // Anonymous multi-mode: claimerName required
+      const name = qtyAnonName.trim();
+      if (!name) {
+        setQtyAnonNameError('Please enter your name');
+        return;
+      }
+      const updated = await claimItemPublic(token, itemId, { claimerName: name, quantity });
+      mergeUpdatedItem(itemId, updated);
+      setQtyDialogItem(null);
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to claim item');
     }
   };
 
@@ -506,7 +556,20 @@ function InvitePage() {
         )}
       </Dialog>
 
-      {/* Anonymous Claim Modal */}
+      {/* Quantity dialog for multi-mode items (authed + anonymous) */}
+      <ClaimQuantityDialog
+        open={!!qtyDialogItem}
+        onClose={() => setQtyDialogItem(null)}
+        item={qtyDialogItem}
+        userId={user?._id}
+        onSubmit={submitQuantityClaim}
+        anonymous={!isAuthed}
+        claimerName={qtyAnonName}
+        onClaimerNameChange={setQtyAnonName}
+        claimerNameError={qtyAnonNameError}
+      />
+
+      {/* Anonymous single-mode Claim Modal */}
       <Dialog
         open={claimModalOpen}
         onClose={() => setClaimModalOpen(false)}

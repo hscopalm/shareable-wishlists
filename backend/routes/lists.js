@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Wishlist = require('../models/Wishlist');
 const ActivityLog = require('../models/ActivityLog');
+const { normalizeItem } = require('../utils/itemClaims');
 
 // Get all lists for current user
 router.get('/', async (req, res) => {
@@ -44,13 +45,15 @@ router.get('/:id', async (req, res) => {
       ]
     })
     .populate('user sharedWith', 'name email picture')
-    .populate('items.status.claimedBy', 'name email picture');
+    .populate('items.status.claimedBy', 'name email picture')
+    .populate('items.claims.claimedBy', 'name email picture');
 
     if (!wishlist) {
       return res.status(404).json({ message: 'List not found' });
     }
 
     const isShared = wishlist.user._id.toString() !== req.user._id.toString();
+    const normalizedItems = wishlist.items.map(normalizeItem);
 
     // Log the view activity
     await ActivityLog.create({
@@ -69,7 +72,7 @@ router.get('/:id', async (req, res) => {
 
     res.json({
       list: wishlist,
-      items: wishlist.items,
+      items: normalizedItems,
       isShared
     });
   } catch (error) {

@@ -10,6 +10,7 @@ import {
   Chip,
   Button,
   Avatar,
+  AvatarGroup,
   alpha,
 } from '@mui/material';
 import {
@@ -22,15 +23,36 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme';
+import {
+  isMultiMode,
+  getRequestedQty,
+  getClaims,
+  getClaimedSum,
+  getMyClaim,
+  isFullyClaimed,
+} from '../utils/itemClaims';
 
 function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
   const { user } = useAuth();
-  const claimer = item.status?.claimedBy;
-  const isClaimedByMe = !!(claimer && user && claimer._id === user._id);
-  const isClaimedByOther = !!(claimer && !isClaimedByMe);
-  const isClaimed = isClaimedByMe || isClaimedByOther;
-  // Only show claimed styling on shared lists - owners should never see items as claimed
-  const showClaimedStyle = isClaimed && isSharedList;
+  const multi = isMultiMode(item);
+  const claims = getClaims(item);
+  const myClaim = getMyClaim(item, user?._id);
+  const myClaimQty = myClaim ? (myClaim.quantity || 1) : 0;
+  const requestedQty = getRequestedQty(item);
+  const claimedSum = getClaimedSum(item);
+  const fullyClaimed = isFullyClaimed(item);
+
+  // Single-mode legacy helpers (preserve existing behavior on items with no quantity)
+  const legacyClaimer = !multi ? item.status?.claimedBy : null;
+  const isClaimedByMe = multi
+    ? !!myClaim
+    : !!(legacyClaimer && user && legacyClaimer._id === user._id);
+  const isClaimedByOther = multi
+    ? false  // multi-mode never hides the button outright; it adapts via state
+    : !!(legacyClaimer && !isClaimedByMe);
+  const isClaimed = multi ? fullyClaimed : (isClaimedByMe || isClaimedByOther);
+  // Only fully-claimed multi-items dim like single claimed items do.
+  const showClaimedStyle = isSharedList && isClaimed;
 
   const handleCardClick = () => {
     if (isSharedList) {
@@ -198,15 +220,28 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
               }}
             />
           )}
-          {isSharedList && claimer && (
+          {multi && (
+            <Chip
+              label={isSharedList ? `Qty: ${claimedSum}/${requestedQty} claimed` : `Qty: ${requestedQty}`}
+              size="small"
+              sx={{
+                fontWeight: 500,
+                backgroundColor: alpha(colors.primary, 0.15),
+                color: colors.primary,
+                border: `1px solid ${alpha(colors.primary, 0.3)}`,
+              }}
+            />
+          )}
+          {/* Single-mode legacy claimer avatar (unchanged) */}
+          {isSharedList && !multi && legacyClaimer && (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 'auto' }}>
               <Typography variant="caption" color="text.secondary">
                 {isClaimedByMe ? 'You claimed this' : 'Claimed by'}
               </Typography>
-              <Tooltip title={claimer.name || 'Unknown'}>
+              <Tooltip title={legacyClaimer.name || 'Unknown'}>
                 <Avatar
-                  src={claimer.picture}
-                  alt={claimer.name}
+                  src={legacyClaimer.picture}
+                  alt={legacyClaimer.name}
                   sx={{
                     width: 24,
                     height: 24,
@@ -214,9 +249,40 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
                     boxShadow: isClaimedByMe ? `0 0 10px ${alpha(colors.success, 0.5)}` : 'none',
                   }}
                 >
-                  {claimer.name?.[0] || '?'}
+                  {legacyClaimer.name?.[0] || '?'}
                 </Avatar>
               </Tooltip>
+            </Box>
+          )}
+          {/* Multi-mode AvatarGroup */}
+          {isSharedList && multi && claims.length > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 'auto' }}>
+              <AvatarGroup
+                max={3}
+                sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.75rem' } }}
+              >
+                {claims.map((c, idx) => {
+                  const name = c.isAnonymousClaim
+                    ? c.anonymousClaimerName
+                    : c.claimedBy?.name;
+                  const picture = c.isAnonymousClaim ? null : c.claimedBy?.picture;
+                  const mine = !!myClaim && !c.isAnonymousClaim &&
+                    (c.claimedBy?._id?.toString?.() === user?._id?.toString?.());
+                  return (
+                    <Tooltip key={idx} title={`${name || 'Unknown'} (${c.quantity || 1})`}>
+                      <Avatar
+                        src={picture}
+                        alt={name}
+                        sx={{
+                          border: `2px solid ${mine ? colors.success : colors.text.muted}`,
+                        }}
+                      >
+                        {name?.[0] || '?'}
+                      </Avatar>
+                    </Tooltip>
+                  );
+                })}
+              </AvatarGroup>
             </Box>
           )}
         </Box>
@@ -305,94 +371,99 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
           </Box>
         )}
 
-        {/* Claim button for shared lists */}
-        {isSharedList && onClaim && !isClaimedByOther && (
-          <>
-            {/* Mobile: inline button */}
-            <Box
-              sx={{
-                display: { xs: 'flex', sm: 'none' },
-                justifyContent: 'flex-end',
-                mt: 2,
-              }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={isClaimedByMe ? <UnclaimIcon /> : <ClaimIcon />}
-                onClick={() => onClaim(item)}
+        {/* Claim button for shared lists. Single-mode hides the button when
+            someone else already claimed; multi-mode adapts label and state. */}
+        {isSharedList && onClaim && (multi ? true : !isClaimedByOther) && (() => {
+          const fullyClaimedNoMine = multi && fullyClaimed && !myClaim;
+          let label;
+          let icon;
+          let palette;  // 'success' | 'error' | 'muted'
+          if (multi) {
+            if (myClaim) {
+              label = `Claimed (${myClaimQty}) — Edit`;
+              icon = <UnclaimIcon />;
+              palette = 'error';
+            } else if (fullyClaimedNoMine) {
+              label = 'All claimed';
+              icon = <ClaimIcon />;
+              palette = 'muted';
+            } else {
+              label = 'Claim';
+              icon = <ClaimIcon />;
+              palette = 'success';
+            }
+          } else {
+            label = isClaimedByMe ? 'Unclaim' : 'Claim';
+            icon = isClaimedByMe ? <UnclaimIcon /> : <ClaimIcon />;
+            palette = isClaimedByMe ? 'error' : 'success';
+          }
+          const baseColor = palette === 'success'
+            ? colors.success
+            : palette === 'error'
+              ? colors.error
+              : colors.text.muted;
+          const btnSx = {
+            borderRadius: '10px',
+            px: 2,
+            py: 0.75,
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            background: `linear-gradient(135deg, ${baseColor} 0%, ${alpha(baseColor, 0.8)} 100%)`,
+            '&:hover': {
+              background: `linear-gradient(135deg, ${baseColor} 20%, ${alpha(baseColor, 0.9)} 100%)`,
+            },
+          };
+          const disabled = !!fullyClaimedNoMine;
+          const handle = (e) => {
+            if (e?.stopPropagation) e.stopPropagation();
+            if (disabled) return;
+            onClaim(item);
+          };
+          return (
+            <>
+              {/* Mobile: inline button */}
+              <Box
+                sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'flex-end', mt: 2 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={icon}
+                  onClick={handle}
+                  disabled={disabled}
+                  sx={btnSx}
+                >
+                  {label}
+                </Button>
+              </Box>
+              {/* Desktop: hover button */}
+              <Box
+                className="item-actions"
                 sx={{
-                  borderRadius: '10px',
-                  px: 2,
-                  py: 0.75,
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  ...(isClaimedByMe
-                    ? {
-                        background: `linear-gradient(135deg, ${colors.error} 0%, ${alpha(colors.error, 0.8)} 100%)`,
-                        '&:hover': {
-                          background: `linear-gradient(135deg, ${colors.error} 20%, ${alpha(colors.error, 0.9)} 100%)`,
-                        },
-                      }
-                    : {
-                        background: `linear-gradient(135deg, ${colors.success} 0%, ${alpha(colors.success, 0.8)} 100%)`,
-                        '&:hover': {
-                          background: `linear-gradient(135deg, ${colors.success} 20%, ${alpha(colors.success, 0.9)} 100%)`,
-                        },
-                      }),
+                  display: { xs: 'none', sm: 'block' },
+                  position: 'absolute',
+                  bottom: 12,
+                  right: 12,
+                  opacity: 0,
+                  transform: 'translateY(8px)',
+                  transition: 'all 0.2s ease-in-out',
                 }}
               >
-                {isClaimedByMe ? 'Unclaim' : 'Claim'}
-              </Button>
-            </Box>
-            {/* Desktop: hover button */}
-            <Box
-              className="item-actions"
-              sx={{
-                display: { xs: 'none', sm: 'block' },
-                position: 'absolute',
-                bottom: 12,
-                right: 12,
-                opacity: 0,
-                transform: 'translateY(8px)',
-                transition: 'all 0.2s ease-in-out',
-              }}
-            >
-              <Button
-                variant="contained"
-                size="small"
-                startIcon={isClaimedByMe ? <UnclaimIcon /> : <ClaimIcon />}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onClaim(item);
-                }}
-                sx={{
-                  borderRadius: '10px',
-                  px: 2,
-                  py: 0.75,
-                  fontWeight: 600,
-                  fontSize: '0.8rem',
-                  ...(isClaimedByMe
-                    ? {
-                        background: `linear-gradient(135deg, ${colors.error} 0%, ${alpha(colors.error, 0.8)} 100%)`,
-                        '&:hover': {
-                          background: `linear-gradient(135deg, ${colors.error} 20%, ${alpha(colors.error, 0.9)} 100%)`,
-                        },
-                      }
-                    : {
-                        background: `linear-gradient(135deg, ${colors.success} 0%, ${alpha(colors.success, 0.8)} 100%)`,
-                        '&:hover': {
-                          background: `linear-gradient(135deg, ${colors.success} 20%, ${alpha(colors.success, 0.9)} 100%)`,
-                        },
-                      }),
-                }}
-              >
-                {isClaimedByMe ? 'Unclaim' : 'Claim'}
-              </Button>
-            </Box>
-          </>
-        )}
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={icon}
+                  onClick={handle}
+                  disabled={disabled}
+                  sx={btnSx}
+                >
+                  {label}
+                </Button>
+              </Box>
+            </>
+          );
+        })()}
       </CardContent>
     </Card>
   );

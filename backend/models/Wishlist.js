@@ -61,6 +61,10 @@ const wishlistSchema = new mongoose.Schema({
       min: 1,
       max: 5
     },
+    // Optional desired quantity. Absent or <= 1 means single-claim mode (uses
+    // the legacy `status` field). > 1 switches the item to multi-claim mode
+    // (uses the `claims` array). See backend/utils/itemClaims.js.
+    quantity: Number,
     createdAt: {
       type: Date,
       default: Date.now
@@ -76,7 +80,30 @@ const wishlistSchema = new mongoose.Schema({
         type: Boolean,
         default: false
       }
-    }
+    },
+    // Populated only when item.quantity > 1. Each entry is one giver's
+    // partial claim of the requested quantity.
+    claims: [{
+      claimedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      },
+      claimedAt: {
+        type: Date,
+        default: Date.now
+      },
+      quantity: {
+        type: Number,
+        required: true,
+        min: 1,
+        default: 1
+      },
+      anonymousClaimerName: String,
+      isAnonymousClaim: {
+        type: Boolean,
+        default: false
+      }
+    }]
   }]
 });
 
