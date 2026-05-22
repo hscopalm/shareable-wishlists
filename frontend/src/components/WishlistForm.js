@@ -17,6 +17,7 @@ function WishlistForm({ listId, initialData, onSubmit }) {
     description: '',
     price: '',
     priority: '',
+    quantity: '',
     link: '',
     imageUrl: '',
     notes: '',
@@ -30,6 +31,7 @@ function WishlistForm({ listId, initialData, onSubmit }) {
         description: initialData.description || '',
         price: initialData.price || '',
         priority: initialData.priority || '',
+        quantity: initialData.quantity || '',
         link: initialData.link || '',
         imageUrl: initialData.imageUrl || '',
         notes: initialData.notes || '',
@@ -39,27 +41,32 @@ function WishlistForm({ listId, initialData, onSubmit }) {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: name === 'price' ? parseFloat(value) || '' : value,
-    });
+    let nextValue = value;
+    if (name === 'price') nextValue = parseFloat(value) || '';
+    if (name === 'quantity') nextValue = value === '' ? '' : (parseInt(value, 10) || '');
+    setFormData({ ...formData, [name]: nextValue });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Strip empty quantity so the backend treats it as single-claim (its
+      // default). We never want to send `quantity: ''` to the server.
+      const { quantity, ...rest } = formData;
+      const payload = { ...rest, list: listId };
+      if (quantity !== '' && quantity !== null && Number(quantity) > 1) {
+        payload.quantity = Number(quantity);
+      } else if (initialData && initialData.quantity) {
+        // User cleared the field on an existing multi-mode item — explicitly
+        // send a falsy quantity so the backend collapses it back to single.
+        payload.quantity = null;
+      }
+
       let response;
       if (initialData) {
-        response = await updateWishlistItem(initialData._id, {
-          ...formData,
-          list: listId
-        });
+        response = await updateWishlistItem(initialData._id, payload);
       } else {
-        const submitData = {
-          ...formData,
-          list: listId
-        };
-        response = await createWishlistItem(submitData);
+        response = await createWishlistItem(payload);
       }
       onSubmit(response);
     } catch (error) {
@@ -127,6 +134,17 @@ function WishlistForm({ listId, initialData, onSubmit }) {
               startAdornment: <InputAdornment position="start">$</InputAdornment>,
             }}
             placeholder="0.00"
+          />
+          <TextField
+            name="quantity"
+            label="Quantity"
+            type="number"
+            value={formData.quantity}
+            onChange={handleChange}
+            sx={{ flex: 1 }}
+            inputProps={{ min: 1, step: 1 }}
+            placeholder="1"
+            helperText="Leave blank for 1"
           />
           <FormControl sx={{ flex: 1 }}>
             <InputLabel>Priority</InputLabel>

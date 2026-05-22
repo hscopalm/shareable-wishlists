@@ -189,6 +189,106 @@ describe('Wishlist Item Routes', () => {
 
       expect(res.status).toBe(404);
     });
+
+    it('should accept a quantity field on create', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlist(alice);
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .post('/api/wishlist')
+        .send({ list: wishlist._id, title: 'Hand towels', quantity: 4 });
+
+      expect(res.status).toBe(201);
+      expect(res.body.quantity).toBe(4);
+      const updated = await Wishlist.findById(wishlist._id);
+      expect(updated.items[0].quantity).toBe(4);
+    });
+
+    it('should reject invalid quantity values', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlist(alice);
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .post('/api/wishlist')
+        .send({ list: wishlist._id, title: 'Bad', quantity: -1 });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should migrate status to claims when quantity goes from undefined to >1', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Item', status: { claimedBy: bob._id, claimedAt: new Date() } }
+      ]);
+      wishlist.sharedWith.push(bob._id);
+      await wishlist.save();
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ quantity: 3 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.quantity).toBe(3);
+      expect(res.body.claims).toHaveLength(1);
+      expect(res.body.claims[0].quantity).toBe(1);
+
+      const stored = await Wishlist.findById(wishlist._id);
+      const item = stored.items.id(itemId);
+      expect(item.claims).toHaveLength(1);
+      expect(item.claims[0].claimedBy.toString()).toBe(bob._id.toString());
+      expect(item.status?.claimedBy).toBeFalsy();
+    });
+
+    it('should warn when reducing quantity below total claimed', async () => {
+      const { alice, bob, charlie } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        {
+          title: 'Towels',
+          quantity: 4,
+          claims: [
+            { claimedBy: bob._id, quantity: 2, claimedAt: new Date() },
+            { claimedBy: charlie._id, quantity: 1, claimedAt: new Date() }
+          ]
+        }
+      ]);
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ quantity: 2 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.warning).toMatch(/claimed total/i);
+    });
+
+    it('should collapse a single claim back to status when going from multi to single', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        {
+          title: 'Towels',
+          quantity: 3,
+          claims: [{ claimedBy: bob._id, quantity: 1, claimedAt: new Date() }]
+        }
+      ]);
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ quantity: 1 });
+
+      expect(res.status).toBe(200);
+      const stored = await Wishlist.findById(wishlist._id);
+      const item = stored.items.id(itemId);
+      expect(item.quantity).toBeFalsy();
+      expect(item.claims).toHaveLength(0);
+      expect(item.status?.claimedBy?.toString()).toBe(bob._id.toString());
+    });
   });
 
   describe('DELETE /api/wishlist/:id - Delete item', () => {
