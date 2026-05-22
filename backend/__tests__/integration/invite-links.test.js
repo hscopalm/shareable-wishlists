@@ -320,6 +320,37 @@ describe('Invite Link Sharing', () => {
         .send({ claimerName: 'Jane' })
         .expect(400);
     });
+
+    // Index-isolation regression for the anonymous claim path (uses
+    // arrayFilters now). Pre-fix this path silently wrote to items[0].
+    it('should anonymous-claim only the targeted item when it is not at index 0', async () => {
+      const wishlist = await createWishlistWithItems(alice, 5);
+      const aliceAgent = await loginAs(alice);
+      const genRes = await aliceAgent.post(`/api/share/${wishlist._id}/invite-link`).expect(200);
+      await aliceAgent.put(`/api/share/${wishlist._id}/anonymous-claims`).send({ allow: true }).expect(200);
+
+      const targetIdx = 3;
+      const targetId = wishlist.items[targetIdx]._id;
+
+      const { request } = createUnauthenticatedRequest();
+      const res = await request
+        .post(`/api/public/invite/${genRes.body.token}/claim/${targetId}`)
+        .send({ claimerName: 'Pat' })
+        .expect(200);
+
+      expect(res.body.status?.claimedBy?.name).toBe('Pat');
+
+      const stored = await Wishlist.findById(wishlist._id);
+      stored.items.forEach((it, idx) => {
+        if (idx === targetIdx) {
+          expect(it.status?.isAnonymousClaim).toBe(true);
+          expect(it.status?.anonymousClaimerName).toBe('Pat');
+        } else {
+          expect(it.status?.claimedBy).toBeFalsy();
+          expect(it.status?.isAnonymousClaim).toBeFalsy();
+        }
+      });
+    });
   });
 
   describe('Authenticated Claims via Invite', () => {
@@ -367,6 +398,32 @@ describe('Invite Link Sharing', () => {
         .post(`/api/public/invite/${genRes.body.token}/claim/${wishlist.items[0]._id}`)
         .expect(200);
       expect(unclaimRes.body.isClaimed).toBe(false);
+    });
+
+    // Index-isolation regression for authed invite-link claim path. Mirrors
+    // the anon non-zero-index test above.
+    it('should claim only the targeted item at non-zero index via invite link', async () => {
+      const wishlist = await createWishlistWithItems(alice, 5, { sharedWith: [bob._id] });
+      const aliceAgent = await loginAs(alice);
+      const genRes = await aliceAgent.post(`/api/share/${wishlist._id}/invite-link`).expect(200);
+
+      const targetIdx = 4; // last item
+      const targetId = wishlist.items[targetIdx]._id;
+
+      const bobAgent = await loginAs(bob);
+      const claimRes = await bobAgent
+        .post(`/api/public/invite/${genRes.body.token}/claim/${targetId}`)
+        .expect(200);
+      expect(claimRes.body.isClaimed).toBe(true);
+
+      const stored = await Wishlist.findById(wishlist._id);
+      stored.items.forEach((it, idx) => {
+        if (idx === targetIdx) {
+          expect(it.status?.claimedBy?.toString()).toBe(bob._id.toString());
+        } else {
+          expect(it.status?.claimedBy).toBeFalsy();
+        }
+      });
     });
   });
 

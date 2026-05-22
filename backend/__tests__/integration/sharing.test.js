@@ -176,6 +176,29 @@ describe('Sharing Routes', () => {
 
       expect(res.status).toBe(404);
     });
+
+    // Index-isolation sibling test for sharedWith[]. The route filters the
+    // array in app code so it's not subject to positional bugs, but locking
+    // it down so a refactor to $pull/positional doesn't break it.
+    it('should remove only the targeted user when they are not at index 0', async () => {
+      const { alice, bob, charlie } = await createTestUsers();
+      const dave = await createUser({ email: 'dave@test.com', name: 'Dave' });
+      const eve = await createUser({ email: 'eve@test.com', name: 'Eve' });
+      const wishlist = await createSharedWishlist(alice, [bob, charlie, dave, eve]);
+      const agent = await loginAs(alice);
+
+      // Remove the 3rd user (dave, index 2)
+      const res = await agent.delete(`/api/share/${wishlist._id}/unshare/${dave._id}`);
+      expect(res.status).toBe(200);
+
+      const updated = await Wishlist.findById(wishlist._id);
+      const sharedIds = updated.sharedWith.map(id => id.toString());
+      expect(sharedIds).toHaveLength(3);
+      expect(sharedIds).toContain(bob._id.toString());
+      expect(sharedIds).toContain(charlie._id.toString());
+      expect(sharedIds).not.toContain(dave._id.toString());
+      expect(sharedIds).toContain(eve._id.toString());
+    });
   });
 
   describe('GET /api/share/shared-with-me - Get lists shared with current user', () => {
@@ -541,6 +564,69 @@ describe('Sharing Routes', () => {
         .post(`/api/share/claim/${wishlist._id}/${itemId}`)
         .send({ quantity: 1.5 });
       expect(frac.status).toBe(400);
+    });
+
+    // Index-isolation for multi-mode. The route uses an aggregation pipeline
+    // ($map over items) rather than positional $, so it shouldn't share the
+    // single-mode bug. But pin it down: claiming on items[3] must only touch
+    // items[3] and not bleed into other items' claims arrays.
+    it('should mutate only the targeted item when multi-claiming at non-zero index', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'A' },
+        { title: 'B', quantity: 3 },
+        { title: 'C', quantity: 4 },
+        { title: 'D', quantity: 5 },
+        { title: 'E' }
+      ]);
+      wishlist.sharedWith.push(bob._id);
+      await wishlist.save();
+
+      const targetIdx = 3;
+      const targetId = wishlist.items[targetIdx]._id;
+      const before = await Wishlist.findById(wishlist._id).lean();
+      const agent = await loginAs(bob);
+
+      const res = await agent
+        .post(`/api/share/claim/${wishlist._id}/${targetId}`)
+        .send({ quantity: 2 });
+      expect(res.status).toBe(200);
+      expect(res.body.claims).toHaveLength(1);
+      expect(res.body.claims[0].quantity).toBe(2);
+
+      await expect(wishlist._id).toHaveOnlyMutatedItem(before.items, targetId);
+    });
+
+    // P3: race condition for the multi-mode aggregation pipeline. Two users
+    // both try to claim 3 of a 4-quantity item simultaneously. Exactly one
+    // should succeed; the other should get a 400 capacity error. This is
+    // the multi-claim equivalent of the existing single-claim race test in
+    // critical-flows.test.js.
+    it('should only allow one of two concurrent multi-claims that would exceed capacity', async () => {
+      const { alice, bob, charlie } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Towels', quantity: 4 }
+      ]);
+      wishlist.sharedWith.push(bob._id, charlie._id);
+      await wishlist.save();
+      const itemId = wishlist.items[0]._id;
+
+      const bobAgent = await loginAs(bob);
+      const charlieAgent = await loginAs(charlie);
+
+      // Each wants 3 of 4 — together they'd need 6, which is impossible.
+      const [bobRes, charlieRes] = await Promise.all([
+        bobAgent.post(`/api/share/claim/${wishlist._id}/${itemId}`).send({ quantity: 3 }),
+        charlieAgent.post(`/api/share/claim/${wishlist._id}/${itemId}`).send({ quantity: 3 })
+      ]);
+
+      const statuses = [bobRes.status, charlieRes.status].sort();
+      expect(statuses).toEqual([200, 400]);
+
+      const stored = await Wishlist.findById(wishlist._id);
+      const item = stored.items.id(itemId);
+      expect(item.claims).toHaveLength(1);
+      expect(item.claims[0].quantity).toBe(3);
     });
   });
 });

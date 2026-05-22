@@ -289,6 +289,124 @@ describe('Wishlist Item Routes', () => {
       expect(item.claims).toHaveLength(0);
       expect(item.status?.claimedBy?.toString()).toBe(bob._id.toString());
     });
+
+    // Index-isolation sibling test for PUT. The route uses items.set(idx, ...)
+    // rather than positional $, so it shouldn't have the same positional bug,
+    // but pinning it down catches accidental regressions if anyone refactors
+    // back to $set/$inc/etc.
+    it('should update only the targeted item when it is not at index 0', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlistWithItems(alice, 5);
+      const targetIdx = 3;
+      const targetId = wishlist.items[targetIdx]._id;
+      const before = await Wishlist.findById(wishlist._id).lean();
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${targetId}`)
+        .send({ title: 'Renamed item', price: 999 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.title).toBe('Renamed item');
+      await expect(wishlist._id).toHaveOnlyMutatedItem(before.items, targetId);
+    });
+
+    // P2: claim-preservation on non-quantity edits. Existing tests update an
+    // item that has no claim; this verifies an unrelated edit doesn't blow
+    // away active claims on a multi-quantity item.
+    it('should preserve claims when editing a non-quantity field on a multi-mode item', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        {
+          title: 'Towels',
+          quantity: 4,
+          claims: [{ claimedBy: bob._id, quantity: 2, claimedAt: new Date() }]
+        }
+      ]);
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ title: 'Hand towels', description: 'fluffy' });
+
+      expect(res.status).toBe(200);
+      const stored = await Wishlist.findById(wishlist._id);
+      const item = stored.items.id(itemId);
+      expect(item.title).toBe('Hand towels');
+      expect(item.quantity).toBe(4);
+      expect(item.claims).toHaveLength(1);
+      expect(item.claims[0].claimedBy.toString()).toBe(bob._id.toString());
+      expect(item.claims[0].quantity).toBe(2);
+    });
+
+    // P2: bumping quantity when claims already exist (already multi). No
+    // warning, claims preserved, quantity changed.
+    it('should bump quantity on an existing multi-mode item without warning', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        {
+          title: 'Towels',
+          quantity: 2,
+          claims: [{ claimedBy: bob._id, quantity: 1, claimedAt: new Date() }]
+        }
+      ]);
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ quantity: 5 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.warning).toBeFalsy();
+      expect(res.body.quantity).toBe(5);
+      expect(res.body.claims).toHaveLength(1);
+    });
+
+    // P2: reducing quantity from 5 to 3 when 4 claimed. Warning returned;
+    // claims kept as-is (allowed-with-warning behavior).
+    it('should warn but keep claims when reducing quantity below claimed sum (multi to smaller multi)', async () => {
+      const { alice, bob, charlie } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        {
+          title: 'Towels',
+          quantity: 5,
+          claims: [
+            { claimedBy: bob._id, quantity: 2, claimedAt: new Date() },
+            { claimedBy: charlie._id, quantity: 2, claimedAt: new Date() }
+          ]
+        }
+      ]);
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ quantity: 3 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.warning).toMatch(/claimed total/i);
+      const stored = await Wishlist.findById(wishlist._id);
+      const item = stored.items.id(itemId);
+      expect(item.quantity).toBe(3);
+      expect(item.claims).toHaveLength(2);
+    });
+
+    // P2: editing an item that doesn't exist returns 404, not 500. Guard
+    // against a TypeError on the spread-merge path.
+    it('should return 404 (not 500) when the item id is unknown', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      await createWishlistWithItems(alice, 3);
+      const agent = await loginAs(alice);
+      const ghostId = '507f1f77bcf86cd799439011';
+
+      const res = await agent
+        .put(`/api/wishlist/${ghostId}`)
+        .send({ title: 'Nope', quantity: 4 });
+
+      expect(res.status).toBe(404);
+    });
   });
 
   describe('DELETE /api/wishlist/:id - Delete item', () => {
@@ -357,6 +475,25 @@ describe('Wishlist Item Routes', () => {
       const res = await agent.delete(`/api/wishlist/${fakeItemId}`);
 
       expect(res.status).toBe(404);
+    });
+
+    // Index-isolation regression: deletes via array filter, not positional,
+    // but worth pinning down so future refactors don't regress.
+    it('should delete only the targeted item when it is not at index 0', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlistWithItems(alice, 5);
+      const targetIdx = 3;
+      const targetTitle = wishlist.items[targetIdx].title;
+      const targetId = wishlist.items[targetIdx]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent.delete(`/api/wishlist/${targetId}`);
+      expect(res.status).toBe(200);
+
+      const updated = await Wishlist.findById(wishlist._id);
+      expect(updated.items).toHaveLength(4);
+      expect(updated.items.find(i => i._id.toString() === targetId.toString())).toBeUndefined();
+      expect(updated.items.find(i => i.title === targetTitle)).toBeUndefined();
     });
   });
 });

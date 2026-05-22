@@ -16,25 +16,51 @@ async function createWishlist(owner, overrides = {}) {
   return wishlist;
 }
 
-// Create a wishlist with items
-async function createWishlistWithItems(owner, items = [], overrides = {}) {
-  const defaultItems = items.length > 0 ? items : [
-    {
-      title: 'Test Item 1',
-      description: 'First test item',
-      price: 25.99,
-      priority: 3
-    },
-    {
-      title: 'Test Item 2',
-      description: 'Second test item',
-      link: 'https://example.com/item2',
-      price: 49.99,
-      priority: 5
-    }
-  ];
+// Generic N-item generator used when a test wants more than the default 2.
+// Returns plain items so callers can still apply per-item overrides via
+// createWishlistWithItems's array form.
+function generateItems(count) {
+  return Array.from({ length: count }, (_, i) => ({
+    title: `Item ${i + 1}`,
+    description: `Generic test item #${i + 1}`,
+    price: 10 + i,
+    priority: ((i % 5) + 1)
+  }));
+}
 
-  return createWishlist(owner, { items: defaultItems, ...overrides });
+// Create a wishlist with items. The second argument accepts either:
+//   - an array of items (legacy callers): used as-is
+//   - a number: generate that many generic items
+//   - omitted: default 2-item fixture (back-compat)
+//
+// Tests that exercise index-sensitive logic should pass a number >= 3 so
+// the target index is unambiguously non-zero. The default of 2 stays the
+// same so existing tests don't change behavior.
+async function createWishlistWithItems(owner, itemsOrCount, overrides = {}) {
+  let items;
+  if (typeof itemsOrCount === 'number') {
+    items = generateItems(itemsOrCount);
+  } else if (Array.isArray(itemsOrCount) && itemsOrCount.length > 0) {
+    items = itemsOrCount;
+  } else {
+    items = [
+      {
+        title: 'Test Item 1',
+        description: 'First test item',
+        price: 25.99,
+        priority: 3
+      },
+      {
+        title: 'Test Item 2',
+        description: 'Second test item',
+        link: 'https://example.com/item2',
+        price: 49.99,
+        priority: 5
+      }
+    ];
+  }
+
+  return createWishlist(owner, { items, ...overrides });
 }
 
 // Create a wishlist shared with specific users
@@ -76,5 +102,6 @@ module.exports = {
   createWishlistWithItems,
   createSharedWishlist,
   createWishlistWithEventDate,
+  generateItems,
   itemTemplates
 };
