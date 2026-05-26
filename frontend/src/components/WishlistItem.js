@@ -35,11 +35,15 @@ import {
   isFullyClaimed,
 } from '../utils/itemClaims';
 
-const PROVIDER_META = {
-  venmo: { label: 'Venmo', color: '#3D95CE' },
-  paypal: { label: 'PayPal', color: '#003087' },
-  cashapp: { label: 'Cash App', color: '#00D632' }
-};
+// Primary link order — when a cash item has multiple handles, the card link
+// opens the first one found in this sequence.
+const PROVIDER_PRIORITY = ['venmo', 'paypal', 'cashapp'];
+const PROVIDER_LABELS = { venmo: 'Venmo', paypal: 'PayPal', cashapp: 'Cash App' };
+
+function primaryProvider(item) {
+  const urls = item.paymentUrls || {};
+  return PROVIDER_PRIORITY.find(id => urls[id]) || null;
+}
 
 function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
   const { user } = useAuth();
@@ -496,27 +500,30 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
 
 function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete, onClaim }) {
   const paymentUrls = item.paymentUrls || {};
-  const providers = Object.keys(PROVIDER_META).filter(id => paymentUrls[id]);
+  const primary = primaryProvider(item);
+  const primaryUrl = primary ? paymentUrls[primary] : null;
+  const providerLabels = PROVIDER_PRIORITY
+    .filter(id => paymentUrls[id])
+    .map(id => PROVIDER_LABELS[id]);
   const haveMine = !!myClaim;
 
-  const contributorBlurb = (() => {
-    if (!claims.length) return null;
-    const names = claims.map(c => c.isAnonymousClaim
-      ? c.anonymousClaimerName
-      : c.claimedBy?.name).filter(Boolean);
-    if (!names.length) return `${claims.length} contributed`;
-    if (names.length === 1) return `${names[0]} contributed`;
-    if (names.length === 2) return `${names[0]} and ${names[1]} contributed`;
-    return `${names[0]} and ${names.length - 1} others contributed`;
-  })();
+  const handleCardClick = () => {
+    if (isSharedList) {
+      if (primaryUrl) window.open(primaryUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      onEdit && onEdit(item);
+    }
+  };
 
   return (
     <Card
       sx={{
         position: 'relative',
+        cursor: isSharedList
+          ? (primaryUrl ? 'pointer' : 'default')
+          : 'pointer',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'visible',
-        cursor: !isSharedList ? 'pointer' : 'default',
         '&:hover': {
           transform: 'translateY(-4px)',
           '& .item-actions': {
@@ -525,108 +532,105 @@ function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete,
           },
         },
       }}
-      onClick={!isSharedList && onEdit ? () => onEdit(item) : undefined}
+      onClick={handleCardClick}
     >
       <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-        <Box display="flex" alignItems="center" gap={1} mb={1}>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              backgroundColor: alpha(colors.success, 0.15),
-            }}
-          >
-            <CashIcon sx={{ color: colors.success, fontSize: 20 }} />
-          </Box>
+        {/* Header — mirror gift card layout with a link indicator top-right */}
+        <Box display="flex" justifyContent="space-between" alignItems="flex-start" mb={1}>
           <Typography
             variant="h6"
-            sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.3, flex: 1 }}
+            sx={{
+              fontWeight: 600,
+              fontSize: '1.1rem',
+              lineHeight: 1.3,
+              pr: 1,
+              color: colors.text.primary,
+            }}
           >
             {item.title}
           </Typography>
+          {primaryUrl && (
+            <Tooltip title={`Open ${PROVIDER_LABELS[primary]}`}>
+              <IconButton
+                size="small"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  window.open(primaryUrl, '_blank', 'noopener,noreferrer');
+                }}
+                sx={{
+                  color: colors.primary,
+                  backgroundColor: alpha(colors.primary, 0.1),
+                  '&:hover': {
+                    backgroundColor: alpha(colors.primary, 0.2),
+                  },
+                }}
+              >
+                <LinkIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
         </Box>
-
-        <Chip
-          label="Cash"
-          size="small"
-          sx={{
-            mb: 1.5,
-            fontWeight: 600,
-            backgroundColor: alpha(colors.success, 0.15),
-            color: colors.success,
-            border: `1px solid ${alpha(colors.success, 0.3)}`,
-          }}
-        />
 
         {item.description && (
           <Typography
             variant="body2"
-            sx={{ color: colors.text.secondary, mb: 2 }}
+            sx={{
+              color: colors.text.secondary,
+              mb: 2,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
           >
             {item.description}
           </Typography>
         )}
 
-        {/* Provider buttons (shared view only — owner sees buttons too for verification but they're disabled) */}
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-          {providers.map(id => {
-            const meta = PROVIDER_META[id];
-            return (
-              <Button
-                key={id}
-                variant="outlined"
-                size="small"
-                href={!isSharedList ? undefined : paymentUrls[id]}
-                target="_blank"
-                rel="noopener noreferrer"
-                disabled={!isSharedList}
-                onClick={(e) => e.stopPropagation()}
-                sx={{
-                  borderColor: meta.color,
-                  color: meta.color,
-                  fontWeight: 600,
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: alpha(meta.color, 0.1),
-                    borderColor: meta.color,
-                  },
-                }}
+        {/* Tags row — Cash badge + contributor avatar group on the right */}
+        <Box display="flex" flexWrap="wrap" gap={1} alignItems="center">
+          <Chip
+            icon={<CashIcon sx={{ fontSize: 14, color: `${colors.success} !important` }} />}
+            label={providerLabels.length ? `Cash · ${providerLabels.join(', ')}` : 'Cash'}
+            size="small"
+            sx={{
+              fontWeight: 600,
+              backgroundColor: alpha(colors.success, 0.15),
+              color: colors.success,
+              border: `1px solid ${alpha(colors.success, 0.3)}`,
+            }}
+          />
+          {isSharedList && claims.length > 0 && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, ml: 'auto' }}>
+              <AvatarGroup
+                max={3}
+                sx={{ '& .MuiAvatar-root': { width: 24, height: 24, fontSize: '0.75rem' } }}
               >
-                {meta.label}
-              </Button>
-            );
-          })}
+                {claims.map((c, idx) => {
+                  const name = c.isAnonymousClaim
+                    ? c.anonymousClaimerName
+                    : c.claimedBy?.name;
+                  const picture = c.isAnonymousClaim ? null : c.claimedBy?.picture;
+                  const mine = !!myClaim && !c.isAnonymousClaim &&
+                    (c.claimedBy?._id?.toString?.() === user?._id?.toString?.());
+                  return (
+                    <Tooltip key={idx} title={name || 'Unknown'}>
+                      <Avatar
+                        src={picture}
+                        alt={name}
+                        sx={{
+                          border: `2px solid ${mine ? colors.success : colors.text.muted}`,
+                        }}
+                      >
+                        {name?.[0] || '?'}
+                      </Avatar>
+                    </Tooltip>
+                  );
+                })}
+              </AvatarGroup>
+            </Box>
+          )}
         </Box>
-
-        {/* Sharer "I contributed" toggle + contributor list */}
-        {isSharedList && onClaim && (
-          <Box onClick={(e) => e.stopPropagation()}>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={haveMine ? <CheckIcon /> : <CashIcon />}
-              onClick={() => onClaim(item)}
-              sx={{
-                background: haveMine
-                  ? `linear-gradient(135deg, ${colors.success} 0%, ${alpha(colors.success, 0.8)} 100%)`
-                  : undefined,
-                fontWeight: 600,
-                textTransform: 'none',
-              }}
-            >
-              {haveMine ? "You've contributed" : 'I contributed'}
-            </Button>
-            {contributorBlurb && (
-              <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.text.secondary }}>
-                {contributorBlurb}
-              </Typography>
-            )}
-          </Box>
-        )}
 
         {item.notes && (
           <Box
@@ -651,7 +655,7 @@ function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete,
           </Box>
         )}
 
-        {/* Owner edit/delete buttons */}
+        {/* Owner edit/delete buttons (hover-revealed) */}
         {!isSharedList && (onEdit || onDelete) && (
           <Box
             className="item-actions"
@@ -688,6 +692,58 @@ function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete,
             )}
           </Box>
         )}
+
+        {/* "I contributed" toggle — same hover-reveal pattern as the gift claim button */}
+        {isSharedList && onClaim && (() => {
+          const label = haveMine ? 'Contributed' : 'I contributed';
+          const icon = haveMine ? <CheckIcon /> : <CashIcon />;
+          const baseColor = haveMine ? colors.error : colors.success;
+          const btnSx = {
+            borderRadius: '10px',
+            px: 2,
+            py: 0.75,
+            fontWeight: 600,
+            fontSize: '0.8rem',
+            background: `linear-gradient(135deg, ${baseColor} 0%, ${alpha(baseColor, 0.8)} 100%)`,
+            '&:hover': {
+              background: `linear-gradient(135deg, ${baseColor} 20%, ${alpha(baseColor, 0.9)} 100%)`,
+            },
+          };
+          const handle = (e) => {
+            if (e?.stopPropagation) e.stopPropagation();
+            onClaim(item);
+          };
+          return (
+            <>
+              {/* Mobile: inline button */}
+              <Box
+                sx={{ display: { xs: 'flex', sm: 'none' }, justifyContent: 'flex-end', mt: 2 }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <Button variant="contained" size="small" startIcon={icon} onClick={handle} sx={btnSx}>
+                  {label}
+                </Button>
+              </Box>
+              {/* Desktop: hover button */}
+              <Box
+                className="item-actions"
+                sx={{
+                  display: { xs: 'none', sm: 'block' },
+                  position: 'absolute',
+                  bottom: 12,
+                  right: 12,
+                  opacity: 0,
+                  transform: 'translateY(8px)',
+                  transition: 'all 0.2s ease-in-out',
+                }}
+              >
+                <Button variant="contained" size="small" startIcon={icon} onClick={handle} sx={btnSx}>
+                  {label}
+                </Button>
+              </Box>
+            </>
+          );
+        })()}
       </CardContent>
     </Card>
   );

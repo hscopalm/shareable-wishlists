@@ -15,15 +15,6 @@ function parseQuantity(raw) {
   return n > 1 ? n : undefined;
 }
 
-// Strip gift-only fields from a cash item payload before save.
-function stripGiftFields(obj) {
-  delete obj.price;
-  delete obj.imageUrl;
-  delete obj.link;
-  delete obj.priority;
-  delete obj.quantity;
-}
-
 // Create item
 router.post('/', async (req, res) => {
   try {
@@ -45,16 +36,14 @@ router.post('/', async (req, res) => {
       if (!hasAnyHandle(sanitized)) {
         return res.status(400).json({ message: 'At least one payment handle is required' });
       }
-      const newItem = {
+      wishlist.items.push({
         type: 'cash',
         title: itemData.title,
         description: itemData.description,
         notes: itemData.notes,
         paymentLinks: sanitized,
         createdAt: new Date()
-      };
-      stripGiftFields(newItem);
-      wishlist.items.push(newItem);
+      });
       await wishlist.save();
       return res.status(201).json(normalizeItem(wishlist.items[wishlist.items.length - 1]));
     }
@@ -122,15 +111,10 @@ router.put('/:id', async (req, res) => {
       if (!hasAnyHandle(incoming)) {
         return res.status(400).json({ message: 'At least one payment handle is required' });
       }
-      const merged = {
-        ...existingObj,
-        title: title !== undefined ? title : existingObj.title,
-        description: description !== undefined ? description : existingObj.description,
-        notes: notes !== undefined ? notes : existingObj.notes,
-        paymentLinks: incoming,
-        type: 'cash'
-      };
-      stripGiftFields(merged);
+      const merged = { ...existingObj, paymentLinks: incoming };
+      if (title !== undefined) merged.title = title;
+      if (description !== undefined) merged.description = description;
+      if (notes !== undefined) merged.notes = notes;
       wishlist.items.set(itemIndex, merged);
       await wishlist.save();
       return res.json(normalizeItem(wishlist.items[itemIndex]));
