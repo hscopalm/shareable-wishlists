@@ -1,29 +1,11 @@
 // Pure functions for cash-item payment handles. Stores cleaned handles
-// (no @ / $ / whitespace); builds profile URLs at read time so the registry
-// is the only place that knows URL templates.
+// (no @ / $ / whitespace); builds profile URLs at read time so this file
+// owns the URL templates.
 
 const PROVIDERS = {
-  venmo: {
-    id: 'venmo',
-    displayName: 'Venmo',
-    brandColor: '#3D95CE',
-    urlTemplate: 'https://venmo.com/u/{handle}',
-    handleRegex: /^[A-Za-z0-9_-]{1,30}$/
-  },
-  paypal: {
-    id: 'paypal',
-    displayName: 'PayPal',
-    brandColor: '#003087',
-    urlTemplate: 'https://paypal.me/{handle}',
-    handleRegex: /^[A-Za-z0-9]{1,20}$/
-  },
-  cashapp: {
-    id: 'cashapp',
-    displayName: 'Cash App',
-    brandColor: '#00D632',
-    urlTemplate: 'https://cash.app/${handle}',
-    handleRegex: /^[A-Za-z][A-Za-z0-9_-]{0,19}$/
-  }
+  venmo:   { urlTemplate: 'https://venmo.com/u/{handle}', handleRegex: /^[A-Za-z0-9_-]{1,30}$/ },
+  paypal:  { urlTemplate: 'https://paypal.me/{handle}',   handleRegex: /^[A-Za-z0-9]{1,20}$/ },
+  cashapp: { urlTemplate: 'https://cash.app/${handle}',   handleRegex: /^[A-Za-z][A-Za-z0-9_-]{0,19}$/ }
 };
 
 const PROVIDER_IDS = Object.keys(PROVIDERS);
@@ -44,21 +26,16 @@ function buildProfileUrl(provider, handle) {
   return def.urlTemplate.replace('{handle}', handle);
 }
 
-// Take raw paymentLinks from a request body, return { sanitized, urls } where
-// sanitized has only valid non-empty handles and urls maps the same providers
-// to constructed profile URLs.
+// Take raw paymentLinks from a request body, return { sanitized } where
+// sanitized has only valid non-empty handles.
 function sanitizePaymentLinks(raw) {
   const sanitized = {};
-  const urls = {};
-  if (!raw || typeof raw !== 'object') return { sanitized, urls };
+  if (!raw || typeof raw !== 'object') return { sanitized };
   for (const id of PROVIDER_IDS) {
     const clean = sanitizeHandle(id, raw[id]);
-    if (clean) {
-      sanitized[id] = clean;
-      urls[id] = buildProfileUrl(id, clean);
-    }
+    if (clean) sanitized[id] = clean;
   }
-  return { sanitized, urls };
+  return { sanitized };
 }
 
 function hasAnyHandle(paymentLinks) {
@@ -77,8 +54,6 @@ function buildPaymentUrls(paymentLinks) {
 }
 
 module.exports = {
-  PROVIDERS,
-  PROVIDER_IDS,
   sanitizeHandle,
   buildProfileUrl,
   sanitizePaymentLinks,
