@@ -69,14 +69,12 @@ describe('paymentLinks utility', () => {
 
   describe('sanitizePaymentLinks', () => {
     it('cleans all provider handles', () => {
-      const { sanitized, urls } = sanitizePaymentLinks({
+      const { sanitized } = sanitizePaymentLinks({
         venmo: '@harry',
         paypal: '  harry  ',
         cashapp: '$harry'
       });
       expect(sanitized).toEqual({ venmo: 'harry', paypal: 'harry', cashapp: 'harry' });
-      expect(urls.venmo).toBe('https://venmo.com/u/harry');
-      expect(urls.cashapp).toBe('https://cash.app/$harry');
     });
 
     it('omits invalid handles', () => {

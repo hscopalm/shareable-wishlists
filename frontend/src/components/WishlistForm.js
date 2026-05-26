@@ -135,8 +135,8 @@ function WishlistForm({ listId, initialData, onSubmit, mode: modeProp }) {
               value={formData.paymentLinks.venmo}
               onChange={(e) => handlePaymentChange('venmo', e.target.value)}
               fullWidth
-              placeholder="harry-palmer"
-              helperText="Just your handle — we'll build the link."
+              placeholder="your-handle"
+              helperText="Just the handle, we'll build the link."
               InputProps={{
                 startAdornment: <InputAdornment position="start">@</InputAdornment>,
               }}
@@ -146,7 +146,7 @@ function WishlistForm({ listId, initialData, onSubmit, mode: modeProp }) {
               value={formData.paymentLinks.paypal}
               onChange={(e) => handlePaymentChange('paypal', e.target.value)}
               fullWidth
-              placeholder="harry"
+              placeholder="your-handle"
               helperText="Your paypal.me name."
             />
             <TextField
@@ -154,7 +154,7 @@ function WishlistForm({ listId, initialData, onSubmit, mode: modeProp }) {
               value={formData.paymentLinks.cashapp}
               onChange={(e) => handlePaymentChange('cashapp', e.target.value)}
               fullWidth
-              placeholder="harry"
+              placeholder="your-cashtag"
               helperText="Your $cashtag."
               InputProps={{
                 startAdornment: <InputAdornment position="start">$</InputAdornment>,
