@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Wishlist = require('../models/Wishlist');
-const { getClaims, getClaimedSum, isMultiMode, normalizeItem } = require('../utils/itemClaims');
+const { getClaims, getClaimedSum, isMultiMode, isCashItem, normalizeItem } = require('../utils/itemClaims');
+const { sanitizePaymentLinks, hasAnyHandle } = require('../utils/paymentLinks');
 
 // Coerce a request-body quantity to a positive integer or undefined.
 // We never store quantity = 1; an absent/null field is the single-claim
@@ -14,10 +15,19 @@ function parseQuantity(raw) {
   return n > 1 ? n : undefined;
 }
 
+// Strip gift-only fields from a cash item payload before save.
+function stripGiftFields(obj) {
+  delete obj.price;
+  delete obj.imageUrl;
+  delete obj.link;
+  delete obj.priority;
+  delete obj.quantity;
+}
+
 // Create item
 router.post('/', async (req, res) => {
   try {
-    const { list: listId, quantity: rawQty, ...itemData } = req.body;
+    const { list: listId, quantity: rawQty, type: rawType, paymentLinks: rawPaymentLinks, ...itemData } = req.body;
 
     const wishlist = await Wishlist.findOne({
       _id: listId,
@@ -28,6 +38,27 @@ router.post('/', async (req, res) => {
       return res.status(404).json({ message: 'List not found' });
     }
 
+    const itemType = rawType === 'cash' ? 'cash' : 'gift';
+
+    if (itemType === 'cash') {
+      const { sanitized } = sanitizePaymentLinks(rawPaymentLinks);
+      if (!hasAnyHandle(sanitized)) {
+        return res.status(400).json({ message: 'At least one payment handle is required' });
+      }
+      const newItem = {
+        type: 'cash',
+        title: itemData.title,
+        description: itemData.description,
+        notes: itemData.notes,
+        paymentLinks: sanitized,
+        createdAt: new Date()
+      };
+      stripGiftFields(newItem);
+      wishlist.items.push(newItem);
+      await wishlist.save();
+      return res.status(201).json(normalizeItem(wishlist.items[wishlist.items.length - 1]));
+    }
+
     const quantity = parseQuantity(rawQty);
     if (quantity === null) {
       return res.status(400).json({ message: 'Quantity must be a positive integer' });
@@ -35,6 +66,7 @@ router.post('/', async (req, res) => {
 
     const newItem = {
       ...itemData,
+      type: 'gift',
       createdAt: new Date()
     };
     if (quantity !== undefined) newItem.quantity = quantity;
@@ -53,6 +85,9 @@ router.post('/', async (req, res) => {
 //   - Going from multi back to single (quantity <= 1 / absent): if exactly
 //     one claim exists, collapse it back into status; if more than one,
 //     leave claims[] alone and surface a warning so the owner notices.
+//
+// Cash items take a separate path — no quantity logic, payment-handle
+// validation, type changes rejected.
 router.put('/:id', async (req, res) => {
   try {
     const wishlist = await Wishlist.findOne({
@@ -74,7 +109,34 @@ router.put('/:id', async (req, res) => {
 
     const existing = wishlist.items[itemIndex];
     const existingObj = existing.toObject();
-    const { quantity: rawQty, ...rest } = req.body;
+
+    if (req.body.type && req.body.type !== existingObj.type) {
+      return res.status(400).json({ message: 'Item type cannot be changed' });
+    }
+
+    if (isCashItem(existingObj)) {
+      const { title, description, notes, paymentLinks: rawPaymentLinks } = req.body;
+      const incoming = rawPaymentLinks !== undefined
+        ? sanitizePaymentLinks(rawPaymentLinks).sanitized
+        : existingObj.paymentLinks || {};
+      if (!hasAnyHandle(incoming)) {
+        return res.status(400).json({ message: 'At least one payment handle is required' });
+      }
+      const merged = {
+        ...existingObj,
+        title: title !== undefined ? title : existingObj.title,
+        description: description !== undefined ? description : existingObj.description,
+        notes: notes !== undefined ? notes : existingObj.notes,
+        paymentLinks: incoming,
+        type: 'cash'
+      };
+      stripGiftFields(merged);
+      wishlist.items.set(itemIndex, merged);
+      await wishlist.save();
+      return res.json(normalizeItem(wishlist.items[itemIndex]));
+    }
+
+    const { quantity: rawQty, paymentLinks: _ignored, ...rest } = req.body;
     const hasQtyField = Object.prototype.hasOwnProperty.call(req.body, 'quantity');
     const newQty = hasQtyField ? parseQuantity(rawQty) : existingObj.quantity;
     if (hasQtyField && newQty === null) {

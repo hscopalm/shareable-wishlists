@@ -6,7 +6,7 @@ const User = require('../models/User');
 const Wishlist = require('../models/Wishlist');
 const { sendEmail, getShareInviteEmail } = require('../utils/emailService');
 const ActivityLog = require('../models/ActivityLog');
-const { isMultiMode, getRequestedQty, getClaimedSum, getMyClaim, normalizeItem } = require('../utils/itemClaims');
+const { isMultiMode, isCashItem, getRequestedQty, getClaimedSum, getMyClaim, normalizeItem } = require('../utils/itemClaims');
 
 // Basic RFC-5322-ish email validation. Catches obvious typos without
 // pretending to be a real address verifier.
@@ -212,7 +212,7 @@ router.post('/share/claim/:listId/:itemId', async (req, res) => {
     // Fast existence/auth check.
     const list = await Wishlist.findOne(
       { _id: listId, sharedWith: userId },
-      { 'items._id': 1, 'items.status': 1, 'items.claims': 1, 'items.quantity': 1 }
+      { 'items._id': 1, 'items.status': 1, 'items.claims': 1, 'items.quantity': 1, 'items.type': 1 }
     );
     if (!list) {
       return res.status(404).json({ message: 'List not found or not shared with you' });
@@ -227,6 +227,10 @@ router.post('/share/claim/:listId/:itemId', async (req, res) => {
     const reqQty = hasQty ? Number(rawQty) : null;
     if (hasQty && (!Number.isFinite(reqQty) || !Number.isInteger(reqQty) || reqQty < 0)) {
       return res.status(400).json({ message: 'Quantity must be a non-negative integer' });
+    }
+
+    if (isCashItem(existingItem)) {
+      return await handleCashClaim({ res, listId, itemId, userId, existingItem, reqQty, hasQty });
     }
 
     if (isMultiMode(existingItem)) {
@@ -244,6 +248,65 @@ router.post('/share/claim/:listId/:itemId', async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 });
+
+// Cash item claim: append-only, one entry per user, no quantity ceiling.
+// Default behavior is toggle (add if missing, remove if present). An explicit
+// quantity === 0 unclaims; any other quantity is treated as "claim" since
+// cash items don't track per-contribution amounts.
+async function handleCashClaim({ res, listId, itemId, userId, existingItem, reqQty, hasQty }) {
+  const claims = existingItem.claims || [];
+  const mine = claims.find(c => !c.isAnonymousClaim && c.claimedBy && c.claimedBy.toString() === userId.toString());
+
+  let intent;
+  if (hasQty) {
+    intent = reqQty === 0 ? 'unclaim' : 'claim';
+  } else {
+    intent = mine ? 'unclaim' : 'claim';
+  }
+
+  if (intent === 'unclaim') {
+    if (mine) {
+      await Wishlist.findOneAndUpdate(
+        { _id: listId, sharedWith: userId, 'items._id': itemId },
+        { $pull: { 'items.$[it].claims': { claimedBy: userId } } },
+        { arrayFilters: [{ 'it._id': itemId }] }
+      );
+    }
+  } else {
+    // Idempotent: only add if I don't already have an entry. We pre-checked
+    // `mine`; arrayFilters target the right item by _id and the extra
+    // claimedBy $ne guard prevents duplicate entries if two concurrent taps
+    // race past the pre-check.
+    if (!mine) {
+      await Wishlist.findOneAndUpdate(
+        { _id: listId, sharedWith: userId, 'items._id': itemId },
+        {
+          $push: {
+            'items.$[it].claims': {
+              claimedBy: userId,
+              claimedAt: new Date(),
+              quantity: 1,
+              isAnonymousClaim: false
+            }
+          }
+        },
+        {
+          arrayFilters: [{
+            $and: [
+              { 'it._id': itemId },
+              { 'it.claims.claimedBy': { $ne: userId } }
+            ]
+          }]
+        }
+      );
+    }
+  }
+
+  const populated = await Wishlist.findById(listId)
+    .populate('items.status.claimedBy', 'name email picture')
+    .populate('items.claims.claimedBy', 'name email picture');
+  return res.json(normalizeItem(populated.items.id(itemId)));
+}
 
 async function handleSingleClaim({ res, listId, itemId, userId, existingItem, reqQty, hasQty }) {
   const claimerId = existingItem.status?.claimedBy?.toString();
