@@ -17,6 +17,9 @@ import {
   FormControlLabel,
   Collapse,
   Divider,
+  MenuItem,
+  ListItemIcon,
+  ListItemText,
 } from '@mui/material';
 import Masonry from '@mui/lab/Masonry';
 import {
@@ -30,7 +33,10 @@ import {
   CalendarMonth as CalendarIcon,
   Inventory2 as EmptyIcon,
   Edit as EditIcon,
+  CardGiftcard as GiftIcon,
+  AttachMoney as CashIcon,
 } from '@mui/icons-material';
+import Menu from '@mui/material/Menu';
 import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
@@ -43,7 +49,7 @@ import { deleteWishlistItem, fetchListItems, claimItem, updateList } from '../se
 import { useParams, useNavigate } from 'react-router-dom';
 import { colors } from '../theme';
 import { EMPTY_ADDRESS, hasMailingAddress } from '../utils/address';
-import { isMultiMode, isFullyClaimed } from '../utils/itemClaims';
+import { isMultiMode, isFullyClaimed, isCashItem } from '../utils/itemClaims';
 
 function WishlistPage() {
   const { id: listId } = useParams();
@@ -52,6 +58,8 @@ function WishlistPage() {
   const { user } = useAuth();
   const [items, setItems] = useState([]);
   const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [addMode, setAddMode] = useState('gift');
+  const [addMenuAnchor, setAddMenuAnchor] = useState(null);
   const [openShareDialog, setOpenShareDialog] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [claimDialogItem, setClaimDialogItem] = useState(null);
@@ -88,9 +96,10 @@ function WishlistPage() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [openAddDialog, openShareDialog, openEditDialog, closeAllDialogs]);
 
-  const openAddDialogWithHistory = useCallback((item = null) => {
+  const openAddDialogWithHistory = useCallback((item = null, mode = 'gift') => {
     window.history.pushState({ dialog: 'add' }, '');
     setEditingItem(item);
+    setAddMode(item ? (item.type === 'cash' ? 'cash' : 'gift') : mode);
     setOpenAddDialog(true);
   }, []);
 
@@ -273,9 +282,9 @@ function WishlistPage() {
   };
 
   const handleClaimItem = async (item) => {
-    // Multi-quantity items route through the dialog; single-mode keeps the
-    // direct toggle so existing behavior is unchanged.
-    if (isMultiMode(item)) {
+    // Cash items toggle directly (no quantity prompt). Multi-quantity gift
+    // items route through the dialog; single-mode keeps the direct toggle.
+    if (isMultiMode(item) && !isCashItem(item)) {
       setClaimDialogItem(item);
       return;
     }
@@ -439,14 +448,45 @@ function WishlistPage() {
         }}
       >
         {!isSharedList && (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={() => openAddDialogWithHistory()}
-            sx={{ minWidth: 'fit-content' }}
-          >
-            Add Item
-          </Button>
+          <>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              endIcon={<ArrowDownIcon />}
+              onClick={(e) => setAddMenuAnchor(e.currentTarget)}
+              sx={{ minWidth: 'fit-content' }}
+            >
+              Add Item
+            </Button>
+            <Menu
+              anchorEl={addMenuAnchor}
+              open={!!addMenuAnchor}
+              onClose={() => setAddMenuAnchor(null)}
+            >
+              <MenuItem
+                onClick={() => {
+                  setAddMenuAnchor(null);
+                  openAddDialogWithHistory(null, 'gift');
+                }}
+              >
+                <ListItemIcon>
+                  <GiftIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Add Gift" secondary="Physical item or product link" />
+              </MenuItem>
+              <MenuItem
+                onClick={() => {
+                  setAddMenuAnchor(null);
+                  openAddDialogWithHistory(null, 'cash');
+                }}
+              >
+                <ListItemIcon>
+                  <CashIcon fontSize="small" />
+                </ListItemIcon>
+                <ListItemText primary="Add Cash" secondary="Venmo, PayPal, or Cash App" />
+              </MenuItem>
+            </Menu>
+          </>
         )}
 
         <Box
@@ -619,7 +659,7 @@ function WishlistPage() {
               <Button
                 variant="outlined"
                 startIcon={<AddIcon />}
-                onClick={() => openAddDialogWithHistory()}
+                onClick={() => openAddDialogWithHistory(null, 'gift')}
               >
                 Add your first item
               </Button>
@@ -662,12 +702,15 @@ function WishlistPage() {
         }}
       >
         <DialogTitle sx={{ pb: 1 }}>
-          {editingItem ? 'Edit Item' : 'Add New Item'}
+          {editingItem
+            ? (addMode === 'cash' ? 'Edit Cash Item' : 'Edit Item')
+            : (addMode === 'cash' ? 'Add Cash' : 'Add New Item')}
         </DialogTitle>
         <DialogContent>
           <WishlistForm
             listId={currentList?._id}
             initialData={editingItem}
+            mode={addMode}
             onSubmit={() => {
               closeAddDialog();
               loadItems();

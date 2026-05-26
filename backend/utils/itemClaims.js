@@ -9,11 +9,22 @@
 // inline with the writes that need the new shape (see backend/routes/wishlist.js
 // PUT handler when quantity goes up or down).
 
+function isCashItem(item) {
+  return !!(item && item.type === 'cash');
+}
+
+// Cash items always use the multi-claim shape (claims[]) so multiple
+// contributors can mark themselves without a ceiling. Gift items keep the
+// quantity-driven mode.
 function isMultiMode(item) {
+  if (isCashItem(item)) return true;
   return !!(item && item.quantity && item.quantity > 1);
 }
 
 function getRequestedQty(item) {
+  // Cash items have no quantity ceiling. Returning Infinity keeps callers
+  // that compute "remaining" safe without special-casing them everywhere.
+  if (isCashItem(item)) return Infinity;
   return isMultiMode(item) ? item.quantity : 1;
 }
 
@@ -70,10 +81,15 @@ function normalizeItem(item) {
     if (c && typeof c.toObject === 'function') return c.toObject({ virtuals: true });
     return c;
   });
+  if (isCashItem(plain)) {
+    const { buildPaymentUrls } = require('./paymentLinks');
+    plain.paymentUrls = buildPaymentUrls(plain.paymentLinks);
+  }
   return plain;
 }
 
 module.exports = {
+  isCashItem,
   isMultiMode,
   getRequestedQty,
   getClaims,

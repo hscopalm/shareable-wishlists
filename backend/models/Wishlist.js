@@ -47,6 +47,14 @@ const wishlistSchema = new mongoose.Schema({
     default: false
   },
   items: [{
+    // 'gift' (default, existing behavior) or 'cash' (payment-handle item).
+    // Cash items live alongside gift items and reuse the claims[] array as a
+    // contributor list with no quantity ceiling.
+    type: {
+      type: String,
+      enum: ['gift', 'cash'],
+      default: 'gift'
+    },
     title: {
       type: String,
       required: true
@@ -65,6 +73,15 @@ const wishlistSchema = new mongoose.Schema({
     // the legacy `status` field). > 1 switches the item to multi-claim mode
     // (uses the `claims` array). See backend/utils/itemClaims.js.
     quantity: Number,
+    // Cash items only. Cleaned handles (no @ / $ / whitespace). At least one
+    // entry required at write time; profile URLs are constructed at read time
+    // via backend/utils/paymentLinks.js.
+    paymentLinks: {
+      venmo: String,
+      paypal: String,
+      cashapp: String,
+      _id: false
+    },
     createdAt: {
       type: Date,
       default: Date.now

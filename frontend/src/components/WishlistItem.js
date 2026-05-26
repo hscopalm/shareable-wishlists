@@ -20,11 +20,14 @@ import {
   ShoppingBag as ClaimIcon,
   RemoveShoppingCart as UnclaimIcon,
   StickyNote2 as NoteIcon,
+  AttachMoney as CashIcon,
+  Check as CheckIcon,
 } from '@mui/icons-material';
 import { useAuth } from '../contexts/AuthContext';
 import { colors } from '../theme';
 import {
   isMultiMode,
+  isCashItem,
   getRequestedQty,
   getClaims,
   getClaimedSum,
@@ -32,11 +35,33 @@ import {
   isFullyClaimed,
 } from '../utils/itemClaims';
 
+const PROVIDER_META = {
+  venmo: { label: 'Venmo', color: '#3D95CE' },
+  paypal: { label: 'PayPal', color: '#003087' },
+  cashapp: { label: 'Cash App', color: '#00D632' }
+};
+
 function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
   const { user } = useAuth();
+  const cash = isCashItem(item);
   const multi = isMultiMode(item);
   const claims = getClaims(item);
   const myClaim = getMyClaim(item, user?._id);
+
+  if (cash) {
+    return (
+      <CashItem
+        item={item}
+        user={user}
+        claims={claims}
+        myClaim={myClaim}
+        isSharedList={isSharedList}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onClaim={onClaim}
+      />
+    );
+  }
   const myClaimQty = myClaim ? (myClaim.quantity || 1) : 0;
   const requestedQty = getRequestedQty(item);
   const claimedSum = getClaimedSum(item);
@@ -464,6 +489,205 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
             </>
           );
         })()}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete, onClaim }) {
+  const paymentUrls = item.paymentUrls || {};
+  const providers = Object.keys(PROVIDER_META).filter(id => paymentUrls[id]);
+  const haveMine = !!myClaim;
+
+  const contributorBlurb = (() => {
+    if (!claims.length) return null;
+    const names = claims.map(c => c.isAnonymousClaim
+      ? c.anonymousClaimerName
+      : c.claimedBy?.name).filter(Boolean);
+    if (!names.length) return `${claims.length} contributed`;
+    if (names.length === 1) return `${names[0]} contributed`;
+    if (names.length === 2) return `${names[0]} and ${names[1]} contributed`;
+    return `${names[0]} and ${names.length - 1} others contributed`;
+  })();
+
+  return (
+    <Card
+      sx={{
+        position: 'relative',
+        transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'visible',
+        cursor: !isSharedList ? 'pointer' : 'default',
+        '&:hover': {
+          transform: 'translateY(-4px)',
+          '& .item-actions': {
+            opacity: 1,
+            transform: 'translateY(0)',
+          },
+        },
+      }}
+      onClick={!isSharedList && onEdit ? () => onEdit(item) : undefined}
+    >
+      <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+        <Box display="flex" alignItems="center" gap={1} mb={1}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              backgroundColor: alpha(colors.success, 0.15),
+            }}
+          >
+            <CashIcon sx={{ color: colors.success, fontSize: 20 }} />
+          </Box>
+          <Typography
+            variant="h6"
+            sx={{ fontWeight: 600, fontSize: '1.1rem', lineHeight: 1.3, flex: 1 }}
+          >
+            {item.title}
+          </Typography>
+        </Box>
+
+        <Chip
+          label="Cash"
+          size="small"
+          sx={{
+            mb: 1.5,
+            fontWeight: 600,
+            backgroundColor: alpha(colors.success, 0.15),
+            color: colors.success,
+            border: `1px solid ${alpha(colors.success, 0.3)}`,
+          }}
+        />
+
+        {item.description && (
+          <Typography
+            variant="body2"
+            sx={{ color: colors.text.secondary, mb: 2 }}
+          >
+            {item.description}
+          </Typography>
+        )}
+
+        {/* Provider buttons (shared view only — owner sees buttons too for verification but they're disabled) */}
+        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+          {providers.map(id => {
+            const meta = PROVIDER_META[id];
+            return (
+              <Button
+                key={id}
+                variant="outlined"
+                size="small"
+                href={!isSharedList ? undefined : paymentUrls[id]}
+                target="_blank"
+                rel="noopener noreferrer"
+                disabled={!isSharedList}
+                onClick={(e) => e.stopPropagation()}
+                sx={{
+                  borderColor: meta.color,
+                  color: meta.color,
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  '&:hover': {
+                    backgroundColor: alpha(meta.color, 0.1),
+                    borderColor: meta.color,
+                  },
+                }}
+              >
+                {meta.label}
+              </Button>
+            );
+          })}
+        </Box>
+
+        {/* Sharer "I contributed" toggle + contributor list */}
+        {isSharedList && onClaim && (
+          <Box onClick={(e) => e.stopPropagation()}>
+            <Button
+              variant="contained"
+              size="small"
+              startIcon={haveMine ? <CheckIcon /> : <CashIcon />}
+              onClick={() => onClaim(item)}
+              sx={{
+                background: haveMine
+                  ? `linear-gradient(135deg, ${colors.success} 0%, ${alpha(colors.success, 0.8)} 100%)`
+                  : undefined,
+                fontWeight: 600,
+                textTransform: 'none',
+              }}
+            >
+              {haveMine ? "You've contributed" : 'I contributed'}
+            </Button>
+            {contributorBlurb && (
+              <Typography variant="caption" sx={{ display: 'block', mt: 1, color: colors.text.secondary }}>
+                {contributorBlurb}
+              </Typography>
+            )}
+          </Box>
+        )}
+
+        {item.notes && (
+          <Box
+            sx={{
+              mt: 2,
+              p: 1.5,
+              borderRadius: 2,
+              backgroundColor: alpha(colors.warning, 0.08),
+              border: `1px solid ${alpha(colors.warning, 0.2)}`,
+              display: 'flex',
+              gap: 1,
+              alignItems: 'flex-start',
+            }}
+          >
+            <NoteIcon sx={{ color: colors.warning, fontSize: 18, mt: 0.25 }} />
+            <Typography
+              variant="body2"
+              sx={{ color: colors.text.secondary, fontStyle: 'italic', fontSize: '0.85rem' }}
+            >
+              {item.notes}
+            </Typography>
+          </Box>
+        )}
+
+        {/* Owner edit/delete buttons */}
+        {!isSharedList && (onEdit || onDelete) && (
+          <Box
+            className="item-actions"
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: 'absolute',
+              bottom: 12,
+              right: 12,
+              opacity: { xs: 1, sm: 0 },
+              transform: { xs: 'translateY(0)', sm: 'translateY(8px)' },
+              transition: 'all 0.2s ease-in-out',
+              display: 'flex',
+              gap: 0.5,
+              backgroundColor: colors.background.elevated,
+              border: `1px solid ${colors.border}`,
+              borderRadius: '12px',
+              padding: '6px',
+              boxShadow: `0 4px 20px ${alpha('#000', 0.3)}`,
+            }}
+          >
+            {onEdit && (
+              <Tooltip title="Edit">
+                <IconButton size="small" onClick={() => onEdit(item)} sx={{ color: colors.primary }}>
+                  <EditIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip title="Delete">
+                <IconButton size="small" onClick={() => onDelete(item)} sx={{ color: colors.error }}>
+                  <DeleteIcon fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
+        )}
       </CardContent>
     </Card>
   );

@@ -3,11 +3,17 @@
 // `status.claimedBy`, so this util handles both. Multi-mode is implied by
 // item.quantity > 1.
 
+export function isCashItem(item) {
+  return !!(item && item.type === 'cash');
+}
+
 export function isMultiMode(item) {
+  if (isCashItem(item)) return true;
   return !!(item && item.quantity && item.quantity > 1);
 }
 
 export function getRequestedQty(item) {
+  if (isCashItem(item)) return Infinity;
   return isMultiMode(item) ? item.quantity : 1;
 }
 
@@ -60,7 +66,8 @@ export function getRemainingForMe(item, userId) {
   return Math.max(0, requested - otherSum);
 }
 
-// True iff every requested unit is claimed.
+// True iff every requested unit is claimed. Cash items never lock.
 export function isFullyClaimed(item) {
+  if (isCashItem(item)) return false;
   return getClaimedSum(item) >= getRequestedQty(item) && getRequestedQty(item) > 0 && getClaims(item).length > 0;
 }

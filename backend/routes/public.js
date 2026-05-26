@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
 const Wishlist = require('../models/Wishlist');
-const { isMultiMode, getRequestedQty, getMyClaim, normalizeItem } = require('../utils/itemClaims');
+const { isMultiMode, isCashItem, getRequestedQty, getMyClaim, normalizeItem } = require('../utils/itemClaims');
 
 // GET /api/public/invite/:token - View list via invite link (no auth required)
 router.get('/invite/:token', async (req, res) => {
@@ -59,6 +59,7 @@ router.get('/invite/:token', async (req, res) => {
 
       return {
         _id: item._id,
+        type: item.type || 'gift',
         title: item.title,
         description: item.description,
         link: item.link,
@@ -67,6 +68,8 @@ router.get('/invite/:token', async (req, res) => {
         price: item.price,
         priority: item.priority,
         quantity: item.quantity,
+        paymentLinks: normalized.paymentLinks,
+        paymentUrls: normalized.paymentUrls,
         claims,
         status,
         isClaimed: claims.length > 0,
@@ -162,8 +165,11 @@ function projectPublicItem(item) {
     : {};
   return {
     _id: item._id,
+    type: item.type || 'gift',
     title: item.title,
     quantity: item.quantity,
+    paymentLinks: normalized.paymentLinks,
+    paymentUrls: normalized.paymentUrls,
     claims,
     status,
     isClaimed: claims.length > 0,
@@ -205,6 +211,12 @@ router.post('/invite/:token/claim/:itemId', async (req, res) => {
         return res.status(400).json({ message: 'Cannot claim items on your own list' });
       }
 
+      if (isCashItem(item)) {
+        const out = await doAuthedCashClaim({ wishlist, item, itemId, userId, token, reqQty, hasQty });
+        if (out.error) return res.status(out.status).json({ message: out.error });
+        return res.json(projectPublicItem(out.updated));
+      }
+
       if (isMultiMode(item)) {
         const out = await doAuthedMultiClaim({ wishlist, item, itemId, userId, token, reqQty });
         if (out.error) return res.status(out.status).json({ message: out.error });
@@ -227,6 +239,12 @@ router.post('/invite/:token/claim/:itemId', async (req, res) => {
     const claimerName = typeof req.body?.claimerName === 'string' ? req.body.claimerName.trim() : '';
     if (!claimerName) {
       return res.status(400).json({ message: 'Name is required for anonymous claims' });
+    }
+
+    if (isCashItem(item)) {
+      const out = await doAnonCashClaim({ wishlist, itemId, token, claimerName });
+      if (out.error) return res.status(out.status).json({ message: out.error });
+      return res.json(projectPublicItem(out.updated));
     }
 
     if (isMultiMode(item)) {
@@ -536,6 +554,88 @@ async function doAnonMultiClaim({ wishlist, item, itemId, token, claimerName, de
     return { error: 'Capacity exceeded; another claim landed first', status: 400 };
   }
   return { updated };
+}
+
+// Cash claim via invite link, authed. Toggle: add my entry if missing,
+// remove if present. Cash items don't enforce a quantity ceiling.
+async function doAuthedCashClaim({ wishlist, item, itemId, userId, token, reqQty, hasQty }) {
+  const claims = item.claims || [];
+  const mine = claims.find(c => !c.isAnonymousClaim && c.claimedBy && c.claimedBy.toString() === userId.toString());
+
+  let intent;
+  if (hasQty) {
+    intent = reqQty === 0 ? 'unclaim' : 'claim';
+  } else {
+    intent = mine ? 'unclaim' : 'claim';
+  }
+
+  if (intent === 'unclaim') {
+    if (mine) {
+      await Wishlist.findOneAndUpdate(
+        { _id: wishlist._id, inviteToken: token, inviteLinkEnabled: true, 'items._id': itemId },
+        { $pull: { 'items.$[it].claims': { claimedBy: userId } } },
+        { arrayFilters: [{ 'it._id': itemId }] }
+      );
+    }
+  } else if (!mine) {
+    await Wishlist.findOneAndUpdate(
+      { _id: wishlist._id, inviteToken: token, inviteLinkEnabled: true, 'items._id': itemId },
+      {
+        $push: {
+          'items.$[it].claims': {
+            claimedBy: userId,
+            claimedAt: new Date(),
+            quantity: 1,
+            isAnonymousClaim: false
+          }
+        },
+        $addToSet: { sharedWith: userId }
+      },
+      {
+        arrayFilters: [{
+          $and: [
+            { 'it._id': itemId },
+            { 'it.claims.claimedBy': { $ne: userId } }
+          ]
+        }]
+      }
+    );
+  }
+
+  const populated = await Wishlist.findById(wishlist._id)
+    .populate('items.status.claimedBy', 'name picture')
+    .populate('items.claims.claimedBy', 'name picture');
+  return { updated: populated.items.id(itemId) };
+}
+
+// Anonymous cash claim via invite link. Always append a new entry; anonymous
+// claims have no identity so they cannot be unclaimed.
+async function doAnonCashClaim({ wishlist, itemId, token, claimerName }) {
+  await Wishlist.findOneAndUpdate(
+    {
+      _id: wishlist._id,
+      inviteToken: token,
+      inviteLinkEnabled: true,
+      allowAnonymousClaims: true,
+      'items._id': itemId
+    },
+    {
+      $push: {
+        'items.$[it].claims': {
+          claimedAt: new Date(),
+          quantity: 1,
+          isAnonymousClaim: true,
+          anonymousClaimerName: claimerName
+        }
+      }
+    },
+    { arrayFilters: [{ 'it._id': itemId }] }
+  );
+
+  const populated = await Wishlist.findById(wishlist._id)
+    .populate('items.status.claimedBy', 'name picture')
+    .populate('items.claims.claimedBy', 'name picture');
+  return { updated: populated.items.id(itemId) };
 }
 
 module.exports = router;
