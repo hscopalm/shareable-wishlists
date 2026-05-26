@@ -11,6 +11,8 @@ import {
   Button,
   Avatar,
   AvatarGroup,
+  Menu,
+  MenuItem,
   alpha,
 } from '@mui/material';
 import {
@@ -35,15 +37,10 @@ import {
   isFullyClaimed,
 } from '../utils/itemClaims';
 
-// Primary link order — when a cash item has multiple handles, the card link
-// opens the first one found in this sequence.
+// Display order for cash-item payment providers. Single-provider items open
+// directly; multi-provider items show a menu in this order.
 const PROVIDER_PRIORITY = ['venmo', 'paypal', 'cashapp'];
 const PROVIDER_LABELS = { venmo: 'Venmo', paypal: 'PayPal', cashapp: 'Cash App' };
-
-function primaryProvider(item) {
-  const urls = item.paymentUrls || {};
-  return PROVIDER_PRIORITY.find(id => urls[id]) || null;
-}
 
 function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
   const { user } = useAuth();
@@ -500,18 +497,40 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
 
 function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete, onClaim }) {
   const paymentUrls = item.paymentUrls || {};
-  const primary = primaryProvider(item);
-  const primaryUrl = primary ? paymentUrls[primary] : null;
-  const providerLabels = PROVIDER_PRIORITY
-    .filter(id => paymentUrls[id])
-    .map(id => PROVIDER_LABELS[id]);
+  const activeProviders = PROVIDER_PRIORITY.filter(id => paymentUrls[id]);
+  const providerLabels = activeProviders.map(id => PROVIDER_LABELS[id]);
   const haveMine = !!myClaim;
+  const [menuAnchor, setMenuAnchor] = React.useState(null);
 
-  const handleCardClick = () => {
-    if (isSharedList) {
-      if (primaryUrl) window.open(primaryUrl, '_blank', 'noopener,noreferrer');
-    } else {
+  const openProvider = (id) => {
+    window.open(paymentUrls[id], '_blank', 'noopener,noreferrer');
+  };
+
+  // Card / link click behavior:
+  //   - 0 providers: nothing
+  //   - 1 provider: open it directly
+  //   - 2+ providers: open a menu anchored to the link icon so the sharer
+  //     picks which platform to pay through
+  const handleLinkClick = (e) => {
+    e.stopPropagation();
+    if (activeProviders.length === 1) {
+      openProvider(activeProviders[0]);
+    } else if (activeProviders.length > 1) {
+      setMenuAnchor(e.currentTarget);
+    }
+  };
+
+  const handleCardClick = (e) => {
+    if (!isSharedList) {
       onEdit && onEdit(item);
+      return;
+    }
+    if (activeProviders.length === 1) {
+      openProvider(activeProviders[0]);
+    } else if (activeProviders.length > 1) {
+      // Use the link icon as the anchor so the menu reads as belonging to it.
+      const linkBtn = e.currentTarget.querySelector('[data-cash-link]');
+      setMenuAnchor(linkBtn || e.currentTarget);
     }
   };
 
@@ -520,7 +539,7 @@ function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete,
       sx={{
         position: 'relative',
         cursor: isSharedList
-          ? (primaryUrl ? 'pointer' : 'default')
+          ? (activeProviders.length ? 'pointer' : 'default')
           : 'pointer',
         transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
         overflow: 'visible',
@@ -549,14 +568,18 @@ function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete,
           >
             {item.title}
           </Typography>
-          {primaryUrl && (
-            <Tooltip title={`Open ${PROVIDER_LABELS[primary]}`}>
+          {activeProviders.length > 0 && (
+            <Tooltip
+              title={
+                activeProviders.length === 1
+                  ? `Open ${PROVIDER_LABELS[activeProviders[0]]}`
+                  : 'Choose payment platform'
+              }
+            >
               <IconButton
                 size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  window.open(primaryUrl, '_blank', 'noopener,noreferrer');
-                }}
+                data-cash-link
+                onClick={handleLinkClick}
                 sx={{
                   color: colors.primary,
                   backgroundColor: alpha(colors.primary, 0.1),
@@ -569,6 +592,24 @@ function CashItem({ item, user, claims, myClaim, isSharedList, onEdit, onDelete,
               </IconButton>
             </Tooltip>
           )}
+          <Menu
+            anchorEl={menuAnchor}
+            open={!!menuAnchor}
+            onClose={() => setMenuAnchor(null)}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {activeProviders.map(id => (
+              <MenuItem
+                key={id}
+                onClick={() => {
+                  setMenuAnchor(null);
+                  openProvider(id);
+                }}
+              >
+                {PROVIDER_LABELS[id]}
+              </MenuItem>
+            ))}
+          </Menu>
         </Box>
 
         {item.description && (
