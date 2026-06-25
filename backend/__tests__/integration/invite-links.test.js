@@ -333,10 +333,13 @@ describe('Invite Link Sharing', () => {
         .post(`/api/share/${wishlist._id}/invite-link`)
         .expect(200);
 
-      // Bob claims without being in sharedWith - should auto-join
+      // Bob claims without being in sharedWith - should auto-join.
+      // Send an empty JSON body ({}) to match what axios sends in the browser
+      // (axios serialises null as "null" which express.json strict mode rejects).
       const bobAgent = await loginAs(bob);
       await bobAgent
         .post(`/api/public/invite/${genRes.body.token}/claim/${wishlist.items[0]._id}`)
+        .send({})
         .expect(200);
 
       // Verify bob was added to sharedWith

@@ -89,7 +89,7 @@ export const joinListViaInvite = async (token) => {
   return response.data;
 };
 
-export const claimItemPublic = async (token, itemId, claimerInfo = null) => {
+export const claimItemPublic = async (token, itemId, claimerInfo = {}) => {
   const response = await api.post(
     `/api/public/invite/${token}/claim/${itemId}`,
     claimerInfo
