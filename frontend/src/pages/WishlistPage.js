@@ -523,9 +523,6 @@ function WishlistPage() {
               <Masonry
                 columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
                 spacing={2}
-                defaultHeight={450}
-                defaultColumns={4}
-                defaultSpacing={2}
               >
                 {unclaimedItems.map((item) => (
                   <WishlistItem
@@ -576,9 +573,6 @@ function WishlistPage() {
               <Masonry
                 columns={{ xs: 1, sm: 2, md: 3, lg: 4 }}
                 spacing={2}
-                defaultHeight={450}
-                defaultColumns={4}
-                defaultSpacing={2}
               >
                 {claimedItems.map((item) => (
                   <WishlistItem
