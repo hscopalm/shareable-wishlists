@@ -1,7 +1,9 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { api } from '../services/api';
 
-const AuthContext = createContext(null);
+// Exported (not just the hook) so tests can render <AuthContext.Provider
+// value={...}> directly, without going through AuthProvider's real API calls.
+export const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);

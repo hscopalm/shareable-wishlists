@@ -116,6 +116,34 @@ it('should allow converted user to access lists shared before signup', ...)
 it('should call mongoose save method', ...)
 ```
 
+#### Frontend Testing
+
+```bash
+cd frontend
+npm test                          # Watch mode
+CI=true npm test -- --watchAll=false  # Single run (what CI runs)
+```
+
+Uses React Testing Library + Jest (via `react-scripts test`). Same
+philosophy as the backend: test critical flows and real user-facing
+behavior, not implementation details or trivial rendering.
+
+- Tests are colocated with the source file (`Component.js` next to
+  `Component.test.js`), not in a separate `__tests__` tree.
+- `src/test-utils.js` exports `renderWithProviders`, which wraps a
+  component in `ThemeProvider` + `MemoryRouter` + `AuthContext`/`ListContext`
+  providers with overridable defaults — use it instead of
+  `@testing-library/react`'s `render` for anything that calls `useAuth()` or
+  `useList()`.
+- `src/services/__mocks__/api.js` is a manual mock of `services/api.js`.
+  Opt in per test file with `jest.mock('../../services/api')` (path
+  relative to the test file), then set return values with e.g.
+  `fetchListItems.mockResolvedValue(...)`.
+- axios ships ESM-only; `package.json`'s `jest.moduleNameMapper` redirects
+  it to `axios/dist/node/axios.cjs` so Jest (bundled at v27 by
+  react-scripts 5) can resolve it. Needed for any test that touches
+  `services/api.js`, even indirectly through a context.
+
 ### Deployment
 
 A push to `main` runs `.github/workflows/deploy.yml`, which path-filters
