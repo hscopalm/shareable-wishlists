@@ -2,7 +2,9 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { fetchLists } from '../services/api';
 import { useAuth } from './AuthContext';
 
-const ListContext = createContext();
+// Exported (not just the hook) so tests can render <ListContext.Provider
+// value={...}> directly, without going through ListProvider's real API calls.
+export const ListContext = createContext();
 
 export function ListProvider({ children }) {
   const { user, loading: authLoading } = useAuth();

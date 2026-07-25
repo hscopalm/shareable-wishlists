@@ -44,7 +44,7 @@ jobs:
       - run: npm test
 
   frontend:
-    name: Frontend build
+    name: Frontend tests & build
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -59,6 +59,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - run: npm ci
+      - run: CI=true npm test -- --watchAll=false
       - run: CI=true npm run build
 
   terraform-plan:
