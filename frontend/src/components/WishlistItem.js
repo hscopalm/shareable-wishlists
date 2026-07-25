@@ -42,7 +42,7 @@ import {
 const PROVIDER_PRIORITY = ['venmo', 'paypal', 'cashapp'];
 const PROVIDER_LABELS = { venmo: 'Venmo', paypal: 'PayPal', cashapp: 'Cash App' };
 
-function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
+function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim, onLinkClick }) {
   const { user } = useAuth();
   const cash = isCashItem(item);
   const multi = isMultiMode(item);
@@ -80,12 +80,24 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
   // Only fully-claimed multi-items dim like single claimed items do.
   const showClaimedStyle = isSharedList && isClaimed;
 
+  // On shared lists, the parent owns the "warn once per visit, then just
+  // open" logic (it's the only thing that knows about every other item's
+  // clicks). The owner's own list never gets a handler, so it always opens
+  // directly.
+  const openLink = (url) => {
+    if (isSharedList && onLinkClick) {
+      onLinkClick(url);
+    } else {
+      window.open(url, '_blank');
+    }
+  };
+
   const handleCardClick = () => {
     if (isSharedList) {
       if (item.link) {
-        window.open(item.link, '_blank');
+        openLink(item.link);
       } else if (item.imageUrl) {
-        window.open(item.imageUrl, '_blank');
+        openLink(item.imageUrl);
       }
     } else {
       onEdit && onEdit(item);
@@ -162,7 +174,7 @@ function WishlistItem({ item, onEdit, onDelete, isSharedList, onClaim }) {
                 size="small"
                 onClick={(e) => {
                   e.stopPropagation();
-                  window.open(item.link, '_blank');
+                  openLink(item.link);
                 }}
                 sx={{
                   color: colors.primary,

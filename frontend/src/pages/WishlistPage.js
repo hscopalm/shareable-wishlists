@@ -41,6 +41,7 @@ import WishlistForm from '../components/WishlistForm';
 import WishlistItem from '../components/WishlistItem';
 import ShareListDialog from '../components/ShareListDialog';
 import ClaimQuantityDialog from '../components/ClaimQuantityDialog';
+import ClaimReminderDialog from '../components/ClaimReminderDialog';
 import MailingAddressFields from '../components/MailingAddressFields';
 import MailingAddressCard from '../components/MailingAddressCard';
 import { useList } from '../contexts/ListContext';
@@ -72,6 +73,25 @@ function WishlistPage() {
   const [showClaimedItems, setShowClaimedItems] = useState(() => {
     return localStorage.getItem('showClaimedItems') === 'true';
   });
+  const [pendingLinkUrl, setPendingLinkUrl] = useState(null);
+
+  // Warn once per shared-list visit (per browser session), on the first
+  // hyperlinked gift clicked, before it opens in a new tab. Every click
+  // after that opens straight through.
+  const handleLinkClick = (url) => {
+    const storageKey = `claim-reminder-${listId}`;
+    if (sessionStorage.getItem(storageKey)) {
+      window.open(url, '_blank');
+      return;
+    }
+    sessionStorage.setItem(storageKey, '1');
+    setPendingLinkUrl(url);
+  };
+
+  const confirmPendingLink = () => {
+    if (pendingLinkUrl) window.open(pendingLinkUrl, '_blank');
+    setPendingLinkUrl(null);
+  };
 
   const handleToggleClaimedItems = (checked) => {
     setShowClaimedItems(checked);
@@ -531,6 +551,7 @@ function WishlistPage() {
                     onEdit={!isSharedList ? handleEditItem : undefined}
                     onDelete={!isSharedList ? handleDeleteItem : undefined}
                     onClaim={isSharedList ? handleClaimItem : undefined}
+                    onLinkClick={handleLinkClick}
                     isSharedList={isSharedList}
                   />
                 ))}
@@ -579,6 +600,7 @@ function WishlistPage() {
                     key={item._id}
                     item={item}
                     onClaim={handleClaimItem}
+                    onLinkClick={handleLinkClick}
                     isSharedList={isSharedList}
                   />
                 ))}
@@ -719,6 +741,9 @@ function WishlistPage() {
         onClose={closeShareDialog}
         listId={currentList?._id}
       />
+
+      {/* Claim reminder (shared lists only, once per visit) */}
+      <ClaimReminderDialog open={!!pendingLinkUrl} onConfirm={confirmPendingLink} />
 
       {/* Claim quantity dialog (multi-mode items only) */}
       <ClaimQuantityDialog
