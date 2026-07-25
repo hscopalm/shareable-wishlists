@@ -29,6 +29,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import WishlistItem from '../components/WishlistItem';
 import ClaimQuantityDialog from '../components/ClaimQuantityDialog';
+import ClaimReminderDialog from '../components/ClaimReminderDialog';
 import MailingAddressCard from '../components/MailingAddressCard';
 import { getPublicList, joinListViaInvite, claimItemPublic } from '../services/api';
 import { colors } from '../theme';
@@ -69,6 +70,9 @@ function InvitePage() {
   const [qtyAnonName, setQtyAnonName] = useState('');
   const [qtyAnonNameError, setQtyAnonNameError] = useState('');
 
+  // First-hyperlink-of-the-visit claim reminder
+  const [pendingLinkUrl, setPendingLinkUrl] = useState(null);
+
   const loadList = useCallback(async () => {
     try {
       setLoading(true);
@@ -107,6 +111,26 @@ function InvitePage() {
   const allowAnonymousClaims = !!list?.allowAnonymousClaims;
   const isAuthed = !!user;
   const canClaim = isAuthed || allowAnonymousClaims;
+
+  // Warn once per visit (per browser session), on the first hyperlinked
+  // gift clicked, before it opens in a new tab — but only when claiming is
+  // actually possible here, so read-only guests don't get a prompt they
+  // can't act on.
+  const handleLinkClick = (url) => {
+    const storageKey = `claim-reminder-${token}`;
+    if (!canClaim || sessionStorage.getItem(storageKey)) {
+      window.open(url, '_blank');
+      return;
+    }
+    sessionStorage.setItem(storageKey, '1');
+    setPendingLinkUrl(url);
+  };
+
+  const confirmPendingLink = () => {
+    if (pendingLinkUrl) window.open(pendingLinkUrl, '_blank');
+    setPendingLinkUrl(null);
+  };
+
   const isItemFullyClaimed = (i) => {
     if (isMultiMode(i)) return isFullyClaimed(i);
     return !!i.status?.claimedBy;
@@ -405,6 +429,7 @@ function InvitePage() {
                   item={item}
                   isSharedList={true}
                   onClaim={canClaim ? handleClaimItem : undefined}
+                  onLinkClick={handleLinkClick}
                 />
               ))}
             </Masonry>
@@ -446,6 +471,7 @@ function InvitePage() {
                   item={item}
                   isSharedList={true}
                   onClaim={canClaim ? handleClaimItem : undefined}
+                  onLinkClick={handleLinkClick}
                 />
               ))}
             </Masonry>
@@ -549,6 +575,9 @@ function InvitePage() {
           </>
         )}
       </Dialog>
+
+      {/* Claim reminder (once per visit) */}
+      <ClaimReminderDialog open={!!pendingLinkUrl} onConfirm={confirmPendingLink} />
 
       {/* Quantity dialog for multi-mode items (authed + anonymous) */}
       <ClaimQuantityDialog
