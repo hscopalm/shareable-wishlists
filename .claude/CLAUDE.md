@@ -47,6 +47,7 @@ npm install          # Install dependencies
 npm start           # Start server (production mode)
 npm run dev         # Start server with nodemon (development mode)
 npm run seed        # Seed database with test data (requires MongoDB running)
+npm run mcp:token -- --email you@example.com --scope wishlists  # Print a personal access token for local MCP testing
 ```
 
 ### Testing
@@ -232,6 +233,9 @@ terraform apply     # Apply infrastructure changes
 - Items embedded with: title, description, link, imageUrl, notes, price, priority (1-5)
 - Item claiming system: status.claimedBy (User ref) and status.claimedAt
 
+### OAuth and token models (MCP)
+- `OAuthClient` (dynamically registered clients), `OAuthCode` (short-lived, single-use auth codes), `ApiToken` (hashed OAuth access/refresh tokens and personal access tokens)
+
 ### ActivityLog Model
 - Tracks user interactions: views, shares, claims
 - Fields: action, causer (User ref), wishlist (Wishlist ref), page, details (flexible object)
@@ -254,6 +258,10 @@ terraform apply     # Apply infrastructure changes
   - `/api/wishlist/*` - Item CRUD operations (requires auth)
   - `/api/share/*` - Sharing functionality (share, unshare, claim items)
   - `/api/admin/*` - Administrative operations (requires auth)
+  - `/api/mcp` - Remote MCP server (Streamable HTTP, bearer token auth)
+  - `/api/oauth/*` - OAuth 2.1 authorization server for MCP clients (plus `/.well-known/oauth-*` discovery)
+  - `/api/mcp-tokens` - Personal access token and connected-app management (session auth)
+  - All MCP/OAuth routes 404 unless `MCP_ENABLED=true`. See `docs/mcp.md`.
 
 ### Frontend State Management
 - **AuthContext**: User authentication state, login/logout methods
@@ -286,6 +294,8 @@ Frontend uses empty base URL (`API_BASE_URL = ''`) because CloudFront handles ro
 - `NODE_ENV` - Environment (development/production)
 - `COOKIE_DOMAIN` - Cookie domain setting (only used in production)
 - `PORT` - Backend port (default: 5000)
+- `MCP_ENABLED` - Set to "true" to enable the MCP server and OAuth endpoints (default off; "false" in production until launch)
+- `PUBLIC_BASE_URL` - Public origin used as OAuth issuer and MCP resource URL (default `FRONTEND_URL`)
 - `DEV_AUTO_LOGIN` - Set to "true" to bypass Google OAuth in development
 - `DEV_USER_EMAIL` - Email of user to auto-login as in dev mode (default: hscopalm@gmail.com)
 - `GOOGLE_SA_USERNAME` - Email service username (optional - email disabled if not set)
