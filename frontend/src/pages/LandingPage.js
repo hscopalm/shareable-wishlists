@@ -617,18 +617,32 @@ function LandingPage() {
             <Typography variant="caption" sx={{ color: colors.text.muted }}>
               © {new Date().getFullYear()} Gift Guru
             </Typography>
-            <Link
-              component={RouterLink}
-              to="/terms"
-              sx={{
-                fontSize: '0.85rem',
-                color: colors.text.secondary,
-                textDecoration: 'none',
-                '&:hover': { color: colors.primary, textDecoration: 'underline' },
-              }}
-            >
-              Terms of Service
-            </Link>
+            <Box sx={{ display: 'flex', gap: 3 }}>
+              <Link
+                component={RouterLink}
+                to="/terms"
+                sx={{
+                  fontSize: '0.85rem',
+                  color: colors.text.secondary,
+                  textDecoration: 'none',
+                  '&:hover': { color: colors.primary, textDecoration: 'underline' },
+                }}
+              >
+                Terms of Service
+              </Link>
+              <Link
+                component={RouterLink}
+                to="/privacy"
+                sx={{
+                  fontSize: '0.85rem',
+                  color: colors.text.secondary,
+                  textDecoration: 'none',
+                  '&:hover': { color: colors.primary, textDecoration: 'underline' },
+                }}
+              >
+                Privacy Policy
+              </Link>
+            </Box>
           </Box>
         </Container>
       </Box>

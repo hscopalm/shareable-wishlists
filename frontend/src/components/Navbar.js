@@ -21,6 +21,7 @@ import {
   PeopleAlt as PeopleIcon,
   Logout as LogoutIcon,
   KeyboardArrowDown as ArrowDownIcon,
+  SmartToy as AssistantIcon,
 } from '@mui/icons-material';
 import { colors } from '../theme';
 
@@ -124,6 +125,7 @@ function Navbar() {
           <Box sx={{ display: 'flex', gap: 1 }}>
             <NavButton icon={ListIcon} label="My Lists" path="/" />
             <NavButton icon={PeopleIcon} label="Shared With Me" path="/shared" />
+            <NavButton icon={AssistantIcon} label="Connect AI" path="/connect" />
           </Box>
         </Box>
 
