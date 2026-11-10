@@ -37,8 +37,8 @@ MCP Registry (`server.json` at the repo root):
 - Then `mcp-publisher publish` from the repo root. Bump `version` in `server.json` for each release.
 
 Anthropic connector directory:
-- Privacy policy URL: `https://www.giftguru.cc/privacy` (replace `TODO_CONTACT_EMAIL` in `PrivacyPolicyPage.js` first)
-- Support contact
+- Privacy policy URL: `https://www.giftguru.cc/privacy`
+- Support contact: hello.guru.gifter@gmail.com
 - A test account with sample data for reviewers
 - Tool annotations (`title`, `readOnlyHint`, `destructiveHint`) are set on every tool
 

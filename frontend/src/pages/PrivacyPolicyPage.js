@@ -135,7 +135,7 @@ function PrivacyPolicyPage() {
           </Section>
 
           <Section title="Contact">
-            Questions or deletion requests: TODO_CONTACT_EMAIL
+            Questions or deletion requests: hello.guru.gifter@gmail.com
           </Section>
         </Box>
       </Container>
