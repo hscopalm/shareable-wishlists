@@ -216,6 +216,8 @@ describe('OAuth authorization code flow', () => {
     expect(consentHtml).not.toContain('<script>');
     expect(consentHtml).toContain('&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;');
     expect(consentHtml).toContain('client.example');
+    expect(consentHtml).toContain('<strong>client.example</strong>');
+    expect(consentHtml).toContain('not verified by Gift Guru');
     expect(consentHtml).toContain(alice.email);
   });
 

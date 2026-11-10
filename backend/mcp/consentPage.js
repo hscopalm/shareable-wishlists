@@ -61,11 +61,12 @@ function renderConsentPage({ clientName, redirectUri, scopes, userEmail, csrfTok
   return layout('Authorize access - Gift Guru', `
   <h1>Gift Guru</h1>
   <p class="muted">Signed in as <strong>${escapeHtml(userEmail)}</strong></p>
-  <h2><strong>${escapeHtml(clientName || 'An application')}</strong> wants to access your Gift Guru account</h2>
+  <h2>${escapeHtml(clientName || 'An application')} wants to access your Gift Guru account</h2>
+  <p class="muted">(name provided by the app, not verified by Gift Guru)</p>
+  <p>After you approve, you'll be sent to: <strong>${escapeHtml(hostOf(redirectUri))}</strong></p>
   <ul>${scopeItems}</ul>
   <p class="muted">It will never see who claimed gifts on your own lists.</p>
-  <p class="muted">After you decide, you will be sent to <code>${escapeHtml(hostOf(redirectUri))}</code>.
-    Only approve apps you trust. You can disconnect it any time from Gift Guru.</p>
+  <p class="muted">Only approve apps you trust. You can disconnect it any time from Gift Guru.</p>
   <form method="post" action="/api/oauth/consent">
     <input type="hidden" name="csrf_token" value="${escapeHtml(csrfToken)}">
     <div class="actions">
