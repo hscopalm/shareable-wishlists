@@ -125,7 +125,9 @@ function Navbar() {
           <Box sx={{ display: 'flex', gap: 1 }}>
             <NavButton icon={ListIcon} label="My Lists" path="/" />
             <NavButton icon={PeopleIcon} label="Shared With Me" path="/shared" />
-            <NavButton icon={AssistantIcon} label="Connect AI" path="/connect" />
+            {user?.mcpEnabled && (
+              <NavButton icon={AssistantIcon} label="Connect AI" path="/connect" />
+            )}
           </Box>
         </Box>
 

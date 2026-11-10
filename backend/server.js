@@ -130,16 +130,6 @@ const startServer = async () => {
     }
     */
 
-    // Debug middleware - after session and passport
-    app.use((req, res, next) => {
-      if (req.path === '/health') {
-        return next();
-      }
-      console.log('Session ID:', req.sessionID);
-      console.log('Is Authenticated:', req.isAuthenticated?.());
-      next();
-    });
-
     // Auth middleware - defined after passport initialization
     const requireAuth = (req, res, next) => {
       if (req.isAuthenticated()) {

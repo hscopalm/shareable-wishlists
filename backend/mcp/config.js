@@ -23,8 +23,20 @@ function getMcpConfig(overrides = {}) {
     rateLimitPerMinute: isTest ? 10000 : 60,
     // share_list calls per user per hour (enforced in the tool, in memory).
     shareLimitPerHour: 20,
-    // Passed to the SDK OAuth handlers. false disables their IP-based limits.
-    oauthRateLimit: isTest ? false : undefined,
+    // Per-endpoint options for the SDK OAuth handlers (express-rate-limit
+    // options), or false to disable them. The SDK keys on req.ip. In
+    // production that is a CloudFront edge IP (CloudFront -> ALB with
+    // `trust proxy 1`), so hosted MCP clients such as claude.ai, which
+    // register and refresh from a few server IPs, share a bucket with each
+    // other. These defaults are generous for that reason. Keying per viewer
+    // needs CloudFront to forward the viewer IP and the X-Custom-Header
+    // origin check to be re-enabled so X-Forwarded-For can be trusted.
+    oauthRateLimit: isTest ? false : {
+      register: { windowMs: 60 * 60 * 1000, limit: 300 },
+      token: { windowMs: 15 * 60 * 1000, limit: 600 },
+      authorize: { windowMs: 15 * 60 * 1000, limit: 600 },
+      revoke: { windowMs: 15 * 60 * 1000, limit: 300 }
+    },
     ...overrides,
     publicBaseUrl
   };

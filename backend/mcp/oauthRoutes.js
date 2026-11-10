@@ -78,15 +78,16 @@ function saveSession(req) {
 
 function createOAuthRouter({ provider, config }) {
   const router = express.Router();
-  const rateLimit = config.oauthRateLimit;
+  // false disables all limits; otherwise an object keyed by endpoint.
+  const limitFor = name => (config.oauthRateLimit === false ? false : (config.oauthRateLimit || {})[name]);
 
   router.use(['/token', '/revoke'], cors(), express.urlencoded({ extended: false }), verifyClientSecret);
-  router.use('/authorize', authorizationHandler({ provider, rateLimit }));
-  router.use('/token', tokenHandler({ provider, rateLimit }));
-  router.use('/revoke', revocationHandler({ provider, rateLimit }));
+  router.use('/authorize', authorizationHandler({ provider, rateLimit: limitFor('authorize') }));
+  router.use('/token', tokenHandler({ provider, rateLimit: limitFor('token') }));
+  router.use('/revoke', revocationHandler({ provider, rateLimit: limitFor('revoke') }));
   router.use('/register', clientRegistrationHandler({
     clientsStore: provider.clientsStore,
-    rateLimit,
+    rateLimit: limitFor('register'),
     clientSecretExpirySeconds: 0 // secrets do not expire; users revoke connections instead
   }));
 

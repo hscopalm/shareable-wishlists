@@ -1,6 +1,7 @@
 const express = require('express');
 const passport = require('passport');
 const User = require('../models/User');
+const { getMcpConfig } = require('../mcp/config');
 const { takeReturnTo } = require('../utils/returnTo');
 const router = express.Router();
 
@@ -24,7 +25,6 @@ router.get('/debug', (req, res) => {
       ip: req.ip,
     },
     session: {
-      id: req.sessionID,
       cookie: req.session?.cookie
     }
   });
@@ -131,12 +131,12 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
 }
 
 router.get('/current-user', (req, res) => {
-  console.log('Current user check - Session ID:', req.sessionID);
   console.log('Is authenticated:', req.isAuthenticated());
   console.log('User in session:', req.user?.email);
   
   if (req.isAuthenticated() && req.user) {
-    res.json(req.user);
+    const user = typeof req.user.toJSON === 'function' ? req.user.toJSON() : req.user;
+    res.json({ ...user, mcpEnabled: getMcpConfig().enabled });
   } else {
     res.status(401).json({ message: 'Not authenticated' });
   }

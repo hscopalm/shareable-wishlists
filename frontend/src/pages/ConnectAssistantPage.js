@@ -184,7 +184,11 @@ function ConnectAssistantPage() {
       setConnections(data?.connections || []);
       setLoadError('');
     } catch (e) {
-      setLoadError('Could not load your tokens and connected apps.');
+      setLoadError(
+        e?.response?.status === 404
+          ? "Connecting AI assistants isn't switched on yet."
+          : 'Could not load your tokens and connected apps.'
+      );
     }
   }, []);
 
@@ -313,7 +317,7 @@ function ConnectAssistantPage() {
             </Button>
           </Box>
           {createError && <Alert severity="error" sx={{ mb: 2 }}>{createError}</Alert>}
-          {loadError && <Alert severity="error" sx={{ mb: 2 }}>{loadError}</Alert>}
+          {loadError && <Alert severity={loadError.includes('switched on') ? 'info' : 'error'} sx={{ mb: 2 }}>{loadError}</Alert>}
 
           {tokens.length === 0 ? (
             <Typography variant="body2" sx={{ color: colors.text.muted }}>

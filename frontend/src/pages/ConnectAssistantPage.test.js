@@ -94,3 +94,10 @@ test('revoking a connected app calls the connection endpoint', async () => {
 
   await waitFor(() => expect(revokeMcpConnection).toHaveBeenCalledWith('client1'));
 });
+
+test('shows a friendly message when the feature is switched off (404)', async () => {
+  listMcpTokens.mockRejectedValue({ response: { status: 404 } });
+  renderWithProviders(<ConnectAssistantPage />);
+  expect(await screen.findByText("Connecting AI assistants isn't switched on yet.")).toBeInTheDocument();
+  expect(screen.queryByText(/Could not load/)).not.toBeInTheDocument();
+});
