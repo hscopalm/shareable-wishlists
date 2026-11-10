@@ -32,7 +32,10 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: callbackURL,
-      proxy: true
+      proxy: true,
+      // Bind the Google callback to the browser that started login (prevents
+      // login CSRF). The state lives in the session.
+      state: true
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
