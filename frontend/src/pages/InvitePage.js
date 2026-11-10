@@ -33,7 +33,7 @@ import ClaimReminderDialog from '../components/ClaimReminderDialog';
 import MailingAddressCard from '../components/MailingAddressCard';
 import { getPublicList, joinListViaInvite, claimItemPublic } from '../services/api';
 import { colors } from '../theme';
-import { isMultiMode, isFullyClaimed } from '../utils/itemClaims';
+import { isMultiMode, isFullyClaimed, getMyClaim } from '../utils/itemClaims';
 
 function InvitePage() {
   const { token } = useParams();
@@ -177,7 +177,10 @@ function InvitePage() {
 
     if (isAuthed) {
       try {
-        const updated = await claimItemPublic(token, item._id);
+        // Send explicit intent (1 = claim, 0 = unclaim) based on the button
+        // the user saw, so a concurrent change can't flip claim into unclaim.
+        const quantity = getMyClaim(item, user._id) ? 0 : 1;
+        const updated = await claimItemPublic(token, item._id, { quantity });
         mergeUpdatedItem(item._id, updated);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to claim item');

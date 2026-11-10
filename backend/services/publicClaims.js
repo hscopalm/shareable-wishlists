@@ -9,7 +9,9 @@ const { NotFoundError, ValidationError, UnauthorizedError, ConflictError } = req
 // thrown with HTTP status 400 to match the existing REST API.
 //
 // Behavior matrix:
-//   - Single-mode + authed: legacy toggle (claim if free, unclaim if mine)
+//   - Single-mode + authed: explicit intent via `quantity` (1 = claim,
+//     0 = unclaim), applied atomically. With no quantity, falls back to the
+//     legacy toggle (claim if free, unclaim if mine) for cached old clients.
 //   - Single-mode + anon (with allowAnonymousClaims): one-shot, irreversible
 //   - Multi-mode + authed: upsert with capacity check (same as claims.js multi)
 //   - Multi-mode + anon: append a new anonymous claim with quantity (irreversible)
@@ -46,7 +48,7 @@ async function claimViaInvite({ token, itemId, userId, quantity, claimerName: ra
       return projectPublicItem(out.updated);
     }
 
-    // Single-mode authed flow (legacy toggle, with optional explicit qty)
+    // Single-mode authed flow: explicit qty intent, or legacy toggle
     if (hasQty && reqQty > 1) {
       throw new ValidationError('This item only allows a single claim');
     }
@@ -79,6 +81,12 @@ async function claimViaInvite({ token, itemId, userId, quantity, claimerName: ra
 }
 
 async function doAuthedSingleClaim({ wishlist, itemId, userId, token, reqQty, hasQty, currentItem }) {
+  // Explicit intent (quantity 1/0) is what the current frontend sends. The
+  // toggle below reads claim state before the write, so a concurrent change
+  // (e.g. a double click) can flip a claim into an unclaim; it is kept only
+  // for old clients that send no quantity. Both writes below are conditional,
+  // so explicit claim/unclaim are idempotent and never touch another user's
+  // claim.
   const isMine = currentItem.status?.claimedBy?.toString() === userId.toString();
   let intent;
   if (hasQty) {
