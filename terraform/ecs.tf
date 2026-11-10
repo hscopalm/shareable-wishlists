@@ -52,6 +52,15 @@ resource "aws_ecs_task_definition" "backend" {
         {
           name  = "COOKIE_DOMAIN"
           value = ".giftguru.cc"
+        },
+        {
+          # Launch switch for the MCP server. Set to "true" to enable.
+          name  = "MCP_ENABLED"
+          value = "false"
+        },
+        {
+          name  = "PUBLIC_BASE_URL"
+          value = "https://www.giftguru.cc"
         }
       ]
       secrets = [
