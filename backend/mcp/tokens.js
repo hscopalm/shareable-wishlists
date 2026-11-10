@@ -53,6 +53,7 @@ function patView(doc) {
     name: doc.name,
     prefix: doc.prefix,
     scope: doc.scopes.join(' '),
+    scopes: [...doc.scopes],
     createdAt: doc.createdAt,
     lastUsedAt: doc.lastUsedAt || null,
     expiresAt: doc.expiresAt || null
