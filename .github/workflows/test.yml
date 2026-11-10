@@ -36,7 +36,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # matches the backend Docker image
           cache: npm
           cache-dependency-path: backend/package-lock.json
 

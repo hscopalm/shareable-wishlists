@@ -310,4 +310,38 @@ async function handleMultiClaim({ listId, itemId, userId, existingItem, reqQty }
 }
 
 
-module.exports = { claimItem };
+// Items the user has claimed across lists shared with them, grouped by list.
+// Lists no longer shared with the user are excluded (their claims stay in the
+// database but are not visible here).
+async function getMyClaims({ userId }) {
+  const lists = await Wishlist.find({ sharedWith: userId })
+    .populate('user', 'name')
+    .sort({ createdAt: -1, _id: -1 });
+
+  const result = [];
+  for (const list of lists) {
+    if (!list.user) continue;
+    const items = [];
+    for (const item of list.items) {
+      const mine = getMyClaim(item, userId);
+      if (!mine) continue;
+      items.push({
+        id: item._id,
+        title: item.title,
+        type: item.type || 'gift',
+        quantity: item.quantity,
+        myQuantity: isCashItem(item) ? 1 : (mine.quantity || 1)
+      });
+    }
+    if (items.length === 0) continue;
+    result.push({
+      listId: list._id,
+      listName: list.name,
+      owner: { id: list.user._id, name: list.user.name },
+      items
+    });
+  }
+  return result;
+}
+
+module.exports = { claimItem, getMyClaims };

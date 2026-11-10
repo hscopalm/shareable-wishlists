@@ -30,6 +30,21 @@ describe('Auth Routes', () => {
       expect(res.body.name).toBe('Alice');
     });
 
+    it('should expose mcpEnabled from MCP_ENABLED', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const agent = await loginAs(alice);
+      const original = process.env.MCP_ENABLED;
+      try {
+        process.env.MCP_ENABLED = 'true';
+        expect((await agent.get('/api/auth/current-user')).body.mcpEnabled).toBe(true);
+        process.env.MCP_ENABLED = 'false';
+        expect((await agent.get('/api/auth/current-user')).body.mcpEnabled).toBe(false);
+      } finally {
+        if (original === undefined) delete process.env.MCP_ENABLED;
+        else process.env.MCP_ENABLED = original;
+      }
+    });
+
     it('should return 401 when not authenticated', async () => {
       const { request } = createUnauthenticatedRequest();
 

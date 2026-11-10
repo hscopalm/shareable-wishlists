@@ -131,11 +131,37 @@ resource "aws_cloudfront_distribution" "main" {
         "Accept",
         "Accept-Language",
         "Accept-Encoding",
-        "Accept-Charset"
+        "Accept-Charset",
+        "Mcp-Protocol-Version",
+        "Mcp-Session-Id",
+        "Last-Event-ID"
       ]
 
       cookies {
         forward = "all"
+      }
+    }
+
+    min_ttl     = 0
+    default_ttl = 0
+    max_ttl     = 0
+  }
+
+  # OAuth discovery documents for MCP clients (served by the backend)
+  ordered_cache_behavior {
+    path_pattern           = "/.well-known/oauth-*"
+    target_origin_id       = "ALB-backend"
+    viewer_protocol_policy = "redirect-to-https"
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD"]
+    compress               = true
+
+    forwarded_values {
+      query_string = true
+      headers      = ["Origin", "Accept", "Accept-Language"]
+
+      cookies {
+        forward = "none"
       }
     }
 

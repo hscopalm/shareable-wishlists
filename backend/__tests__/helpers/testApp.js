@@ -2,8 +2,10 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 
-// Create a test-ready Express app with all middleware and routes configured
-function createTestApp() {
+// Create a test-ready Express app with all middleware and routes configured.
+// Pass { mcp: true } to also mount the MCP endpoint and OAuth server
+// (optionally with { mcpConfig } overrides, e.g. { enabled: false }).
+function createTestApp({ mcp = false, mcpConfig } = {}) {
   const app = express();
 
   // Basic middleware
@@ -57,6 +59,12 @@ function createTestApp() {
   app.get('/health', (req, res) => {
     res.status(200).json({ status: 'healthy' });
   });
+
+  if (mcp) {
+    const { mountMcp } = require('../../mcp');
+    const { getMcpConfig } = require('../../mcp/config');
+    mountMcp(app, { requireAuth, config: getMcpConfig({ enabled: true, publicBaseUrl: 'http://localhost', ...mcpConfig }) });
+  }
 
   // Mount routes
   app.use('/api/auth', authRoutes);

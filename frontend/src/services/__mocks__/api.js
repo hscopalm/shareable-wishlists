@@ -30,3 +30,7 @@ export const getInviteLinkStatus = jest.fn();
 export const generateInviteLink = jest.fn();
 export const disableInviteLink = jest.fn();
 export const setAnonymousClaims = jest.fn();
+export const listMcpTokens = jest.fn();
+export const createMcpToken = jest.fn();
+export const revokeMcpToken = jest.fn();
+export const revokeMcpConnection = jest.fn();

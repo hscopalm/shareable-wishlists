@@ -11,7 +11,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Share a list with a user by email. Unknown emails get a placeholder
 // (isPending) user that is converted when they sign up.
-async function shareList({ userId, listId, email: rawInput }) {
+async function shareList({ userId, listId, email: rawInput, notify = true }) {
   const rawEmail = typeof rawInput === 'string' ? rawInput.trim() : '';
   if (!rawEmail || !EMAIL_RE.test(rawEmail)) {
     throw new ValidationError('A valid email address is required');
@@ -48,16 +48,18 @@ async function shareList({ userId, listId, email: rawInput }) {
   wishlist.sharedWith.push(userToShare._id);
   await wishlist.save();
 
-  // Send email
-  const sender = await User.findById(userId);
-  const inviteLink = `${process.env.FRONTEND_URL}/login`;
-  const emailData = getShareInviteEmail({
-    list: wishlist,
-    senderName: sender && sender.name,
-    email,
-    inviteLink
-  });
-  await sendEmail(emailData);
+  // Send email (callers can pass notify: false to skip it)
+  if (notify) {
+    const sender = await User.findById(userId);
+    const inviteLink = `${process.env.FRONTEND_URL}/login`;
+    const emailData = getShareInviteEmail({
+      list: wishlist,
+      senderName: sender && sender.name,
+      email,
+      inviteLink
+    });
+    await sendEmail(emailData);
+  }
 
   // Return user info with pending status
   return {

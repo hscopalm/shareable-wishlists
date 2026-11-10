@@ -1,6 +1,7 @@
 module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/__tests__/**/*.test.js'],
+  setupFiles: ['<rootDir>/__tests__/polyfills.js'],
   setupFilesAfterEnv: ['<rootDir>/__tests__/setup.js'],
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
@@ -8,6 +9,7 @@ module.exports = {
     'services/**/*.js',
     'models/**/*.js',
     'utils/**/*.js',
+    'mcp/**/*.js',
     '!**/node_modules/**'
   ],
   testTimeout: 30000,
