@@ -204,7 +204,7 @@ function ConnectAssistantPage() {
       setReadOnly(false);
       await load();
     } catch (err) {
-      setCreateError(err?.response?.data?.error || 'Could not create the token.');
+      setCreateError(err?.response?.data?.message || err?.response?.data?.error || 'Could not create the token.');
     } finally {
       setCreating(false);
     }
