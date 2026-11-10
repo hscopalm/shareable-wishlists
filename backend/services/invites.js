@@ -74,8 +74,8 @@ async function viewInvite({ token, userId }) {
 
   const isAuthenticated = !!userId;
   const currentUserId = isAuthenticated ? userId.toString() : null;
-  const isOwner = currentUserId && wishlist.user._id.toString() === currentUserId;
-  const isSharedWith = currentUserId && wishlist.sharedWith.some(
+  const isOwner = !!currentUserId && wishlist.user._id.toString() === currentUserId;
+  const isSharedWith = !!currentUserId && wishlist.sharedWith.some(
     id => id.toString() === currentUserId
   );
 
