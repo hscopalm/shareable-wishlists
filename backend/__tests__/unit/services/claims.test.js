@@ -80,6 +80,22 @@ describe('claimItem single mode', () => {
     expect(item.status.claimedBy.toString()).toBe(bob._id.toString());
   });
 
+  it('explicit quantity 1 is idempotent and never toggles off (#43)', async () => {
+    const { bob, listId, itemId } = await setup({ title: 'Book' });
+    await claimItem({ userId: bob._id, listId, itemId, quantity: 1 });
+    const again = await claimItem({ userId: bob._id, listId, itemId, quantity: 1 });
+    expect(again.claims).toHaveLength(1);
+    const results = await Promise.allSettled([
+      claimItem({ userId: bob._id, listId, itemId, quantity: 1 }),
+      claimItem({ userId: bob._id, listId, itemId, quantity: 1 })
+    ]);
+    expect(results.every(r => r.status === 'fulfilled')).toBe(true);
+    expect((await reload(listId, itemId)).status.claimedBy.toString()).toBe(bob._id.toString());
+    // Explicit unclaim is idempotent too
+    await claimItem({ userId: bob._id, listId, itemId, quantity: 0 });
+    expect((await claimItem({ userId: bob._id, listId, itemId, quantity: 0 })).claims).toHaveLength(0);
+  });
+
   it('rejects quantity > 1', async () => {
     const { bob, listId, itemId } = await setup({ title: 'Book' });
     await expect(claimItem({ userId: bob._id, listId, itemId, quantity: 2 }))
