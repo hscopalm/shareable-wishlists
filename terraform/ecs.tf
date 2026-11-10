@@ -54,9 +54,9 @@ resource "aws_ecs_task_definition" "backend" {
           value = ".giftguru.cc"
         },
         {
-          # Launch switch for the MCP server. Set to "true" to enable.
+          # Launch switch for the MCP server. Set to "false" to turn it off.
           name  = "MCP_ENABLED"
-          value = "false"
+          value = "true"
         },
         {
           name  = "PUBLIC_BASE_URL"

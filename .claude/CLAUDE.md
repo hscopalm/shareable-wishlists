@@ -296,7 +296,7 @@ Frontend uses empty base URL (`API_BASE_URL = ''`) because CloudFront handles ro
 - `NODE_ENV` - Environment (development/production)
 - `COOKIE_DOMAIN` - Cookie domain setting (only used in production)
 - `PORT` - Backend port (default: 5000)
-- `MCP_ENABLED` - Set to "true" to enable the MCP server and OAuth endpoints (default off; "false" in production until launch)
+- `MCP_ENABLED` - Set to "true" to enable the MCP server and OAuth endpoints (default off; "true" in production)
 - `PUBLIC_BASE_URL` - Public origin used as OAuth issuer and MCP resource URL (default `FRONTEND_URL`)
 - `DEV_AUTO_LOGIN` - Set to "true" to bypass Google OAuth in development
 - `DEV_USER_EMAIL` - Email of user to auto-login as in dev mode (default: hscopalm@gmail.com)

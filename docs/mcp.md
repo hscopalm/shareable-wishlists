@@ -4,7 +4,7 @@ Gift Guru exposes a remote MCP server at `/api/mcp` (Streamable HTTP, stateless,
 
 Auth is either OAuth 2.1 (Gift Guru is its own authorization server, login uses the normal Google session) or a personal access token sent as `Authorization: Bearer <token>`. Scopes are `wishlists` (full) and `wishlists:read` (read-only tools). Users manage tokens and connected apps at `/connect`.
 
-The whole feature is off unless `MCP_ENABLED=true`. When off, `/api/mcp`, `/api/oauth/*`, `/.well-known/oauth-*` and `/api/mcp-tokens` return 404. Production sets it to `"false"` in `terraform/ecs.tf`; flip it to launch. `PUBLIC_BASE_URL` is the OAuth issuer and resource origin (`https://www.giftguru.cc` in prod, `http://localhost` locally).
+The whole feature is off unless `MCP_ENABLED=true`. When off, `/api/mcp`, `/api/oauth/*`, `/.well-known/oauth-*` and `/api/mcp-tokens` return 404. Production sets it to `"true"` in `terraform/ecs.tf`; set `"false"` to turn it off. `PUBLIC_BASE_URL` is the OAuth issuer and resource origin (`https://www.giftguru.cc` in prod, `http://localhost` locally).
 
 ## Testing locally
 
