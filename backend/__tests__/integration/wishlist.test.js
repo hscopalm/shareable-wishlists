@@ -362,4 +362,178 @@ describe('Wishlist Item Routes', () => {
       expect(res.status).toBe(404);
     });
   });
+
+  // Regression coverage for issue #20: an update must either persist or fail.
+  // Every check below re-reads from the DB instead of trusting the response.
+  describe('Updates persist or fail loudly (#20)', () => {
+    it('should not report success when the stored item has no _id', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      // Bypass Mongoose so the embedded item is stored without an _id, as
+      // happened after a raw mongosh import.
+      const { insertedId } = await Wishlist.collection.insertOne({
+        name: 'Imported',
+        user: alice._id,
+        sharedWith: [],
+        createdAt: new Date(),
+        items: [{ title: 'Imported Item', price: 10 }]
+      });
+      const agent = await loginAs(alice);
+
+      const listRes = await agent.get(`/api/lists/${insertedId}`);
+      expect(listRes.status).toBe(200);
+      const handedOutId = listRes.body.items[0]._id;
+      expect(handedOutId).toBeDefined();
+
+      const putRes = await agent
+        .put(`/api/wishlist/${handedOutId}`)
+        .send({ title: 'Edited' });
+      expect(putRes.status).toBeGreaterThanOrEqual(400);
+
+      const delRes = await agent.delete(`/api/wishlist/${handedOutId}`);
+      expect(delRes.status).toBeGreaterThanOrEqual(400);
+
+      const raw = await Wishlist.collection.findOne({ _id: insertedId });
+      expect(raw.items).toHaveLength(1);
+      expect(raw.items[0].title).toBe('Imported Item');
+    });
+
+    it('should persist edits to a single-claim item', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Other', price: 1 },
+        { title: 'Lamp', price: 40, priority: 2, notes: 'old' }
+      ]);
+      const itemId = wishlist.items[1]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ title: 'Desk Lamp', price: 55, priority: 4, notes: 'new', link: 'https://example.com/lamp' });
+      expect(res.status).toBe(200);
+
+      const stored = (await Wishlist.findById(wishlist._id)).items.id(itemId);
+      expect(stored.title).toBe('Desk Lamp');
+      expect(stored.price).toBe(55);
+      expect(stored.priority).toBe(4);
+      expect(stored.notes).toBe('new');
+      expect(stored.link).toBe('https://example.com/lamp');
+    });
+
+    it('should persist edits to a multi-quantity item without touching its claims', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createWishlistWithItems(alice, [
+        {
+          title: 'Towels',
+          quantity: 4,
+          claims: [{ claimedBy: bob._id, quantity: 2, claimedAt: new Date() }]
+        }
+      ]);
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ title: 'Bath Towels', quantity: 6, price: 12 });
+      expect(res.status).toBe(200);
+
+      const stored = (await Wishlist.findById(wishlist._id)).items.id(itemId);
+      expect(stored.title).toBe('Bath Towels');
+      expect(stored.quantity).toBe(6);
+      expect(stored.price).toBe(12);
+      expect(stored.claims).toHaveLength(1);
+      expect(stored.claims[0].claimedBy.toString()).toBe(bob._id.toString());
+      expect(stored.claims[0].quantity).toBe(2);
+    });
+
+    it('should persist edits to a cash item', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlistWithItems(alice, [
+        { type: 'cash', title: 'Fund', paymentLinks: { venmo: 'alice' } }
+      ]);
+      const itemId = wishlist.items[0]._id;
+      const agent = await loginAs(alice);
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({ title: 'Honeymoon Fund', notes: 'thanks', paymentLinks: { venmo: 'alice2', paypal: 'alicepp' } });
+      expect(res.status).toBe(200);
+
+      const stored = (await Wishlist.findById(wishlist._id)).items.id(itemId);
+      expect(stored.title).toBe('Honeymoon Fund');
+      expect(stored.notes).toBe('thanks');
+      expect(stored.paymentLinks.venmo).toBe('alice2');
+      expect(stored.paymentLinks.paypal).toBe('alicepp');
+    });
+
+    it('should persist a delete and leave sibling items intact', async () => {
+      const alice = await createUser({ email: 'alice@test.com', name: 'Alice' });
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Keep 1' },
+        { title: 'Remove' },
+        { title: 'Keep 2' }
+      ]);
+      const [keep1, remove, keep2] = wishlist.items.map(i => i._id.toString());
+      const agent = await loginAs(alice);
+
+      const res = await agent.delete(`/api/wishlist/${remove}`);
+      expect(res.status).toBe(200);
+
+      const stored = await Wishlist.findById(wishlist._id);
+      expect(stored.items.map(i => i._id.toString())).toEqual([keep1, keep2]);
+    });
+
+    it('should not let the request body overwrite server-controlled item fields', async () => {
+      const { alice, bob } = await createTestUsers();
+      const createdAt = new Date('2024-01-01T00:00:00Z');
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Item', createdAt, status: { claimedBy: bob._id, claimedAt: new Date() } }
+      ]);
+      const itemId = wishlist.items[0]._id.toString();
+      const agent = await loginAs(alice);
+      const forgedId = '507f1f77bcf86cd799439011';
+
+      const res = await agent
+        .put(`/api/wishlist/${itemId}`)
+        .send({
+          title: 'Renamed',
+          _id: forgedId,
+          createdAt: '2030-01-01T00:00:00Z',
+          status: {},
+          claims: [{ claimedBy: alice._id, quantity: 1 }]
+        });
+      expect(res.status).toBe(200);
+
+      const stored = await Wishlist.findById(wishlist._id);
+      expect(stored.items).toHaveLength(1);
+      const item = stored.items[0];
+      expect(item._id.toString()).toBe(itemId);
+      expect(item.title).toBe('Renamed');
+      expect(item.createdAt.toISOString()).toBe(createdAt.toISOString());
+      expect(item.status.claimedBy.toString()).toBe(bob._id.toString());
+      expect(item.claims).toHaveLength(0);
+    });
+
+    it('should not let a create request forge claims or ids', async () => {
+      const { alice, bob } = await createTestUsers();
+      const wishlist = await createWishlist(alice);
+      const agent = await loginAs(alice);
+      const forgedId = '507f1f77bcf86cd799439011';
+
+      const res = await agent
+        .post('/api/wishlist')
+        .send({
+          list: wishlist._id,
+          title: 'New',
+          _id: forgedId,
+          status: { claimedBy: bob._id },
+          claims: [{ claimedBy: bob._id, quantity: 1 }]
+        });
+      expect(res.status).toBe(201);
+
+      const item = (await Wishlist.findById(wishlist._id)).items[0];
+      expect(item._id.toString()).not.toBe(forgedId);
+      expect(item.status?.claimedBy).toBeFalsy();
+      expect(item.claims).toHaveLength(0);
+    });
+  });
 });

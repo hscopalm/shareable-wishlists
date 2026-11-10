@@ -14,10 +14,24 @@ function parseQuantity(raw) {
   return n > 1 ? n : undefined;
 }
 
+// Gift item fields the owner may set directly. Everything else on an item
+// (_id, createdAt, status, claims) is server-controlled; type, quantity and
+// paymentLinks have their own handling below.
+const GIFT_FIELDS = ['title', 'description', 'link', 'imageUrl', 'notes', 'price', 'priority'];
+
+function pickGiftFields(body) {
+  const out = {};
+  for (const key of GIFT_FIELDS) {
+    if (Object.prototype.hasOwnProperty.call(body, key)) out[key] = body[key];
+  }
+  return out;
+}
+
 // `data` is the item body as sent by the client (title, description, link,
 // imageUrl, notes, price, priority, quantity, type, paymentLinks).
 async function createItem({ userId, listId, data }) {
-  const { quantity: rawQty, type: rawType, paymentLinks: rawPaymentLinks, ...itemData } = data || {};
+  const { quantity: rawQty, type: rawType, paymentLinks: rawPaymentLinks } = data || {};
+  const itemData = pickGiftFields(data || {});
 
   const wishlist = await Wishlist.findOne({ _id: listId, user: userId });
   if (!wishlist) {
@@ -105,7 +119,8 @@ async function updateItem({ userId, itemId, data }) {
     return normalizeItem(wishlist.items[itemIndex]);
   }
 
-  const { quantity: rawQty, paymentLinks: _ignored, ...rest } = body;
+  const { quantity: rawQty } = body;
+  const rest = pickGiftFields(body);
   const hasQtyField = Object.prototype.hasOwnProperty.call(body, 'quantity');
   const newQty = hasQtyField ? parseQuantity(rawQty) : existingObj.quantity;
   if (hasQtyField && newQty === null) {
