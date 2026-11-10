@@ -71,6 +71,14 @@ describe('read-only tokens', () => {
     };
   }
 
+  it('blocks get_invite_link because the live token grants access', async () => {
+    const list = await createWishlist(alice, { items: [{ title: 'Gift' }] });
+    const client = await mcpClientFor(await createPat(alice, 'wishlists:read'));
+    const res = await callTool(client, 'get_invite_link', { listId: list._id.toString() });
+    expect(res.isError).toBe(true);
+    expect(res.content[0].text).toMatch(/requires the wishlists scope/);
+  });
+
   it('lets read tools run and blocks every write tool', async () => {
     const list = await createWishlist(alice, { sharedWith: [bob._id], items: [{ title: 'Gift' }] });
     const args = sampleArgs(list);

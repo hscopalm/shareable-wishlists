@@ -18,8 +18,10 @@ module.exports = [
     name: 'get_invite_link',
     title: 'Get invite link',
     description: 'Get the current invite link of a list the user owns, whether it is enabled, and whether anonymous '
-      + 'claims are allowed. The link is null if none was created yet (use create_invite_link).',
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+      + 'claims are allowed. The link is null if none was created yet (use create_invite_link). '
+      + 'Requires the full wishlists scope because the link grants access to the list.',
+    // Not read-only: the live token is a capability grant, so read-only tokens must not see it.
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
     inputSchema: { listId },
     async handler({ listId: id }, ctx) {
       const info = await invitesService.getInviteLink({ userId: ctx.userId, listId: id });
