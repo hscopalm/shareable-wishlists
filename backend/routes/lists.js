@@ -1,12 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const lists = require('../services/lists');
+const { sanitizeForOwner } = require('../services/sanitize');
 const { sendError } = require('./handle');
 
 // Get all lists for current user
 router.get('/', async (req, res) => {
   try {
-    res.json(await lists.listLists({ userId: req.user._id }));
+    const owned = await lists.listLists({ userId: req.user._id });
+    res.json(owned.map(list => sanitizeForOwner(list, req.user._id)));
   } catch (error) {
     sendError(res, error);
   }
@@ -31,7 +33,9 @@ router.post('/', async (req, res) => {
 // Get list and its items
 router.get('/:id', async (req, res) => {
   try {
-    res.json(await lists.getList({ userId: req.user._id, listId: req.params.id }));
+    const payload = await lists.getList({ userId: req.user._id, listId: req.params.id });
+    // Owners never see claim data; shared viewers get it unchanged.
+    res.json(sanitizeForOwner(payload, req.user._id));
   } catch (error) {
     sendError(res, error, { log: 'Error loading list:' });
   }
@@ -48,7 +52,7 @@ router.put('/:id', async (req, res) => {
       event_date: req.body.event_date,
       mailingAddress: req.body.mailingAddress
     });
-    res.json(updated);
+    res.json(sanitizeForOwner(updated, req.user._id));
   } catch (error) {
     sendError(res, error, { status: 400 });
   }

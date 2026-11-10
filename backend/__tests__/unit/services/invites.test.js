@@ -111,8 +111,9 @@ describe('viewInvite', () => {
     await claimViaInvite({ token, itemId, userId: null, claimerName: 'Gran' });
     const view = await invites.viewInvite({ token, userId: owner._id });
     expect(view.viewer).toMatchObject({ isAuthenticated: true, isOwner: true });
-    expect(view.items[0].claims[0].claimedBy.picture).toBeNull();
+    expect(view.items[0].claims).toEqual([]);
     const anon = await invites.viewInvite({ token, userId: null });
     expect(anon.viewer.isAuthenticated).toBe(false);
+    expect(anon.items[0].claims[0].claimedBy.picture).toBeNull();
   });
 });

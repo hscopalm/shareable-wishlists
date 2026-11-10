@@ -21,6 +21,8 @@ function clone(value) {
 
 const DERIVED_CLAIM_FIELDS = ['isClaimed', 'isAnonymousClaim', 'claimedCount', 'claimedQuantity', 'claimedSum'];
 
+// Strip claim data from a single item. Exported for owner-only item
+// responses (create/update) where there is no list payload to pass in.
 function stripItem(item) {
   if (!item || typeof item !== 'object') return item;
   const out = { ...item };
@@ -47,4 +49,4 @@ function sanitizeForOwner(listPayload, viewerId) {
   return out;
 }
 
-module.exports = { sanitizeForOwner };
+module.exports = { sanitizeForOwner, stripItemClaims: stripItem };
