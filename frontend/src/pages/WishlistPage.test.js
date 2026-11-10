@@ -64,7 +64,7 @@ describe('WishlistPage — shared list critical flow', () => {
     await userEvent.click(claimButton);
 
     await waitFor(() => {
-      expect(claimItem).toHaveBeenCalledWith('list-1', 'item-1');
+      expect(claimItem).toHaveBeenCalledWith('list-1', 'item-1', 1);
     });
 
     // The exact-label "Claim" button is gone once the item is claimed —
@@ -94,6 +94,51 @@ describe('WishlistPage — shared list critical flow', () => {
     expect(screen.getAllByRole('button', { name: /^claim$/i }).length).toBeGreaterThan(0);
 
     consoleSpy.mockRestore();
+  });
+});
+
+// Issue #43: send what the user clicked rather than letting the server toggle
+// from a stale read.
+describe('WishlistPage — explicit claim intent', () => {
+  it('sends quantity 0 when the user clicks Unclaim on their own claim', async () => {
+    localStorage.setItem('showClaimedItems', 'true');
+    fetchListItems.mockResolvedValue({
+      items: [{
+        ...mockItem,
+        status: { claimedBy: { _id: 'me', name: 'Me' } },
+        claims: [{ claimedBy: { _id: 'me', name: 'Me' }, quantity: 1 }],
+      }],
+      list: { _id: 'list-1', name: "Sam's Birthday" },
+      isShared: true,
+    });
+    claimItem.mockResolvedValue({ status: {}, claims: [], quantity: 1 });
+
+    renderSharedList();
+    await screen.findByText('Board Game');
+    const [unclaimButton] = screen.getAllByRole('button', { name: /^unclaim$/i });
+    await userEvent.click(unclaimButton);
+
+    await waitFor(() => {
+      expect(claimItem).toHaveBeenCalledWith('list-1', 'item-1', 0);
+    });
+  });
+
+  it('sends quantity 1 for "I contributed" on a cash item', async () => {
+    fetchListItems.mockResolvedValue({
+      items: [{ _id: 'cash-1', title: 'Honeymoon fund', type: 'cash', claims: [], createdAt: '2024-01-01T00:00:00.000Z' }],
+      list: { _id: 'list-1', name: "Sam's Birthday" },
+      isShared: true,
+    });
+    claimItem.mockResolvedValue({ claims: [{ claimedBy: { _id: 'me', name: 'Me' }, quantity: 1 }] });
+
+    renderSharedList();
+    await screen.findByText('Honeymoon fund');
+    const [button] = screen.getAllByRole('button', { name: /i contributed/i });
+    await userEvent.click(button);
+
+    await waitFor(() => {
+      expect(claimItem).toHaveBeenCalledWith('list-1', 'cash-1', 1);
+    });
   });
 });
 

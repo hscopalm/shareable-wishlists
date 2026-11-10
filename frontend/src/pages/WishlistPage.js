@@ -50,7 +50,7 @@ import { deleteWishlistItem, fetchListItems, claimItem, updateList } from '../se
 import { useParams, useNavigate } from 'react-router-dom';
 import { colors } from '../theme';
 import { EMPTY_ADDRESS, hasMailingAddress } from '../utils/address';
-import { isMultiMode, isFullyClaimed, isCashItem } from '../utils/itemClaims';
+import { isMultiMode, isFullyClaimed, isCashItem, getMyClaim } from '../utils/itemClaims';
 
 function WishlistPage() {
   const { id: listId } = useParams();
@@ -302,14 +302,17 @@ function WishlistPage() {
   };
 
   const handleClaimItem = async (item) => {
-    // Cash items toggle directly (no quantity prompt). Multi-quantity gift
-    // items route through the dialog; single-mode keeps the direct toggle.
+    // Multi-quantity gift items route through the dialog. Single-mode and
+    // cash items claim/unclaim directly, sending explicit intent (1 = claim,
+    // 0 = unclaim) based on the button shown so a concurrent change can't
+    // flip a claim into an unclaim on the server.
     if (isMultiMode(item) && !isCashItem(item)) {
       setClaimDialogItem(item);
       return;
     }
     try {
-      const updatedItem = await claimItem(listId, item._id);
+      const quantity = getMyClaim(item, user?._id) ? 0 : 1;
+      const updatedItem = await claimItem(listId, item._id, quantity);
       applyClaimResponse(item._id, updatedItem);
     } catch (error) {
       console.error('Error claiming item:', error);

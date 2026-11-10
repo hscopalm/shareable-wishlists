@@ -371,6 +371,35 @@ describe('Invite Link Sharing', () => {
         .expect(200);
       expect(unclaimRes.body.isClaimed).toBe(false);
     });
+
+    it('should honour explicit claim/unclaim intent sent as quantity', async () => {
+      const wishlist = await createWishlistWithItems(alice, [
+        { title: 'Test Item', price: 25 }
+      ]);
+      const aliceAgent = await loginAs(alice);
+      const genRes = await aliceAgent
+        .post(`/api/share/${wishlist._id}/invite-link`)
+        .expect(200);
+      const url = `/api/public/invite/${genRes.body.token}/claim/${wishlist.items[0]._id}`;
+
+      const bobAgent = await loginAs(bob);
+      const charlieAgent = await loginAs(charlie);
+
+      // Repeated claim intent stays claimed instead of toggling off
+      await bobAgent.post(url).send({ quantity: 1 }).expect(200);
+      const again = await bobAgent.post(url).send({ quantity: 1 }).expect(200);
+      expect(again.body.isClaimed).toBe(true);
+
+      // Charlie's claim intent conflicts; unclaim intent leaves Bob's claim alone
+      await charlieAgent.post(url).send({ quantity: 1 }).expect(400);
+      const charlieUnclaim = await charlieAgent.post(url).send({ quantity: 0 }).expect(200);
+      expect(charlieUnclaim.body.isClaimed).toBe(true);
+
+      const unclaimed = await bobAgent.post(url).send({ quantity: 0 }).expect(200);
+      expect(unclaimed.body.isClaimed).toBe(false);
+      const stillUnclaimed = await bobAgent.post(url).send({ quantity: 0 }).expect(200);
+      expect(stillUnclaimed.body.isClaimed).toBe(false);
+    });
   });
 
   describe('Anonymous Claims Toggle', () => {

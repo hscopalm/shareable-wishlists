@@ -65,6 +65,54 @@ describe('authed single-mode claims', () => {
   });
 });
 
+describe('authed single-mode explicit intent (#43)', () => {
+  const holder = out => out.claims[0]?.claimedBy._id.toString();
+
+  it('explicit claim on an item someone else holds conflicts and keeps their claim', async () => {
+    const { bob, carol, token, itemId, list } = await setup({ title: 'Book' });
+    await claimViaInvite({ token, itemId, userId: bob._id, quantity: 1 });
+    await expect(claimViaInvite({ token, itemId, userId: carol._id, quantity: 1 }))
+      .rejects.toMatchObject({ status: 400, message: 'Item already claimed by someone else' });
+    const item = (await Wishlist.findById(list._id)).items[0];
+    expect(item.status.claimedBy.toString()).toBe(bob._id.toString());
+  });
+
+  it('explicit claim is idempotent: claiming twice leaves it claimed', async () => {
+    const { bob, token, itemId } = await setup({ title: 'Book' });
+    await claimViaInvite({ token, itemId, userId: bob._id, quantity: 1 });
+    const again = await claimViaInvite({ token, itemId, userId: bob._id, quantity: 1 });
+    expect(again.isClaimed).toBe(true);
+    expect(holder(again)).toBe(bob._id.toString());
+  });
+
+  it('concurrent explicit claims from the same user (double click) never unclaim', async () => {
+    const { bob, token, itemId, list } = await setup({ title: 'Book' });
+    const results = await Promise.allSettled([
+      claimViaInvite({ token, itemId, userId: bob._id, quantity: 1 }),
+      claimViaInvite({ token, itemId, userId: bob._id, quantity: 1 })
+    ]);
+    expect(results.every(r => r.status === 'fulfilled')).toBe(true);
+    const item = (await Wishlist.findById(list._id)).items[0];
+    expect(item.status.claimedBy.toString()).toBe(bob._id.toString());
+  });
+
+  it('explicit unclaim is idempotent, never claims, and only clears my own claim', async () => {
+    const { bob, carol, token, itemId } = await setup({ title: 'Book' });
+    expect((await claimViaInvite({ token, itemId, userId: bob._id, quantity: 0 })).isClaimed).toBe(false);
+    expect((await claimViaInvite({ token, itemId, userId: bob._id, quantity: 0 })).isClaimed).toBe(false);
+
+    await claimViaInvite({ token, itemId, userId: carol._id, quantity: 1 });
+    const out = await claimViaInvite({ token, itemId, userId: bob._id, quantity: 0 });
+    expect(holder(out)).toBe(carol._id.toString());
+  });
+
+  it('legacy no-quantity requests still toggle', async () => {
+    const { bob, token, itemId } = await setup({ title: 'Book' });
+    expect((await claimViaInvite({ token, itemId, userId: bob._id })).isClaimed).toBe(true);
+    expect((await claimViaInvite({ token, itemId, userId: bob._id })).isClaimed).toBe(false);
+  });
+});
+
 describe('authed multi-mode claims', () => {
   it('handles exactly full, over capacity, and reducing own claim', async () => {
     const { bob, carol, list, token, itemId } = await setup({ title: 'Socks', quantity: 3 });
