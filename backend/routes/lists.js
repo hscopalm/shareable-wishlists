@@ -1,126 +1,66 @@
 const express = require('express');
 const router = express.Router();
-const Wishlist = require('../models/Wishlist');
-const ActivityLog = require('../models/ActivityLog');
-const { normalizeItem } = require('../utils/itemClaims');
+const lists = require('../services/lists');
+const { sendError } = require('./handle');
 
 // Get all lists for current user
 router.get('/', async (req, res) => {
   try {
-    // Tiebreak on _id so two lists created in the same millisecond
-    // still sort deterministically by insertion order.
-    const wishlists = await Wishlist.find({ user: req.user._id })
-      .sort({ createdAt: -1, _id: -1 });
-    res.json(wishlists);
+    res.json(await lists.listLists({ userId: req.user._id }));
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 });
 
 // Create new list
 router.post('/', async (req, res) => {
   try {
-    const wishlist = new Wishlist({
+    const newWishlist = await lists.createList({
+      userId: req.user._id,
       name: req.body.name,
       description: req.body.description,
       event_date: req.body.event_date,
-      mailingAddress: req.body.mailingAddress,
-      user: req.user._id,
-      items: []
+      mailingAddress: req.body.mailingAddress
     });
-    const newWishlist = await wishlist.save();
     res.status(201).json(newWishlist);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendError(res, error, { status: 400 });
   }
 });
 
 // Get list and its items
 router.get('/:id', async (req, res) => {
   try {
-    const wishlist = await Wishlist.findOne({
-      $or: [
-        { _id: req.params.id, user: req.user._id },
-        { _id: req.params.id, sharedWith: req.user._id }
-      ]
-    })
-    .populate('user sharedWith', 'name email picture')
-    .populate('items.status.claimedBy', 'name email picture')
-    .populate('items.claims.claimedBy', 'name email picture');
-
-    if (!wishlist) {
-      return res.status(404).json({ message: 'List not found' });
-    }
-
-    const isShared = wishlist.user._id.toString() !== req.user._id.toString();
-    const normalizedItems = wishlist.items.map(normalizeItem);
-
-    // Log the view activity
-    await ActivityLog.create({
-      action: 'view_list',
-      causer: req.user._id,
-      wishlist: wishlist._id,
-      page: 'list_detail',
-      details: {
-        listName: wishlist.name,
-        listOwner: wishlist.user._id,
-        isShared: isShared,
-        itemCount: wishlist.items.length,
-        viewerRole: isShared ? 'shared_user' : 'owner'
-      }
-    });
-
-    res.json({
-      list: wishlist,
-      items: normalizedItems,
-      isShared
-    });
+    res.json(await lists.getList({ userId: req.user._id, listId: req.params.id }));
   } catch (error) {
-    console.error('Error loading list:', error);
-    res.status(500).json({ message: error.message });
+    sendError(res, error, { log: 'Error loading list:' });
   }
 });
 
 // Update list
 router.put('/:id', async (req, res) => {
   try {
-    const wishlist = await Wishlist.findOne({
-      _id: req.params.id,
-      user: req.user._id
+    const updated = await lists.updateList({
+      userId: req.user._id,
+      listId: req.params.id,
+      name: req.body.name,
+      description: req.body.description,
+      event_date: req.body.event_date,
+      mailingAddress: req.body.mailingAddress
     });
-
-    if (!wishlist) {
-      return res.status(404).json({ message: 'List not found' });
-    }
-
-    wishlist.name = req.body.name;
-    wishlist.description = req.body.description;
-    wishlist.event_date = req.body.event_date;
-    wishlist.mailingAddress = req.body.mailingAddress;
-
-    const updatedWishlist = await wishlist.save();
-    res.json(updatedWishlist);
+    res.json(updated);
   } catch (error) {
-    res.status(400).json({ message: error.message });
+    sendError(res, error, { status: 400 });
   }
 });
 
 // Delete list
 router.delete('/:id', async (req, res) => {
   try {
-    const wishlist = await Wishlist.findOneAndDelete({
-      _id: req.params.id,
-      user: req.user._id
-    });
-
-    if (!wishlist) {
-      return res.status(404).json({ message: 'List not found' });
-    }
-
-    res.json({ message: 'List deleted successfully' });
+    res.json(await lists.deleteList({ userId: req.user._id, listId: req.params.id }));
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    sendError(res, error);
   }
 });
 
-module.exports = router; 
+module.exports = router;
