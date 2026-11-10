@@ -8,6 +8,7 @@ module.exports = {
     'services/**/*.js',
     'models/**/*.js',
     'utils/**/*.js',
+    'mcp/**/*.js',
     '!**/node_modules/**'
   ],
   testTimeout: 30000,

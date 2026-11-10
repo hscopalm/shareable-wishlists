@@ -19,12 +19,17 @@ const allowedOrigin = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'pro
   ? 'https://www.giftguru.cc'
   : 'http://localhost:3000');
 
-app.use(cors({
+const { mountMcp, PUBLIC_CORS_PATH } = require('./mcp');
+
+const appCors = cors({
   origin: allowedOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Custom-Header']
-}));
+});
+// MCP and OAuth endpoints used by third-party clients set their own
+// any-origin CORS (bearer tokens, no cookies), so skip the app policy there.
+app.use((req, res, next) => (PUBLIC_CORS_PATH.test(req.path) ? next() : appCors(req, res, next)));
 
 app.use(express.json());
 
@@ -142,6 +147,10 @@ const startServer = async () => {
       }
       res.status(401).json({ message: 'Not authenticated' });
     };
+
+    // MCP server + OAuth authorization server. 404s unless MCP_ENABLED=true.
+    // Must be mounted before the catch-all '/api' router below.
+    mountMcp(app, { requireAuth });
 
     // Use routes - after all middleware is initialized
     app.use('/api/auth', authRoutes);

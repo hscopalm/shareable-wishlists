@@ -1,6 +1,7 @@
 const express = require('express');
 const passport = require('passport');
 const User = require('../models/User');
+const { takeReturnTo } = require('../utils/returnTo');
 const router = express.Router();
 
 // Test route
@@ -74,7 +75,10 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
         return res.redirect(`${process.env.FRONTEND_URL}/?error=dev_user_not_found`);
       }
 
-      req.login(devUser, (err) => {
+      // An OAuth authorization in progress (see backend/mcp) sets returnTo;
+      // keepSessionInfo carries its pending request across the login.
+      const returnTo = takeReturnTo(req);
+      req.login(devUser, { keepSessionInfo: Boolean(returnTo) }, (err) => {
         if (err) {
           return res.redirect(`${process.env.FRONTEND_URL}/?error=login_failed`);
         }
@@ -84,7 +88,7 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
           if (saveErr) {
             return res.redirect(`${process.env.FRONTEND_URL}/?error=session_save_failed`);
           }
-          res.redirect(`${process.env.FRONTEND_URL}/`);
+          res.redirect(returnTo || `${process.env.FRONTEND_URL}/`);
         });
       });
     } catch (error) {
@@ -104,17 +108,23 @@ if (process.env.NODE_ENV === 'development' && process.env.DEV_AUTO_LOGIN === 'tr
   });
 
   router.get('/google/callback',
-    passport.authenticate('google', {
-      failureRedirect: `${process.env.FRONTEND_URL}/`,
-      session: true
-    }),
+    (req, res, next) => {
+      // An OAuth authorization in progress (see backend/mcp) sets returnTo;
+      // keepSessionInfo carries it and the pending request across the login.
+      passport.authenticate('google', {
+        failureRedirect: `${process.env.FRONTEND_URL}/`,
+        session: true,
+        keepSessionInfo: Boolean(req.session && req.session.returnTo)
+      })(req, res, next);
+    },
     (req, res) => {
+      const returnTo = takeReturnTo(req);
       // Explicitly save session before redirect to ensure it's persisted
       req.session.save((err) => {
         if (err) {
           console.error('Session save error:', err);
         }
-        res.redirect(`${process.env.FRONTEND_URL}/`);
+        res.redirect(returnTo || `${process.env.FRONTEND_URL}/`);
       });
     }
   );
