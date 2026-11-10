@@ -233,8 +233,8 @@ describe('Wishlist Item Routes', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.quantity).toBe(3);
-      expect(res.body.claims).toHaveLength(1);
-      expect(res.body.claims[0].quantity).toBe(1);
+      // Owner response never carries claim data; check storage instead.
+      expect(res.body.claims).toEqual([]);
 
       const stored = await Wishlist.findById(wishlist._id);
       const item = stored.items.id(itemId);
@@ -243,7 +243,7 @@ describe('Wishlist Item Routes', () => {
       expect(item.status?.claimedBy).toBeFalsy();
     });
 
-    it('should warn when reducing quantity below total claimed', async () => {
+    it('should allow reducing quantity below total claimed without revealing claims', async () => {
       const { alice, bob, charlie } = await createTestUsers();
       const wishlist = await createWishlistWithItems(alice, [
         {
@@ -263,7 +263,10 @@ describe('Wishlist Item Routes', () => {
         .send({ quantity: 2 });
 
       expect(res.status).toBe(200);
-      expect(res.body.warning).toMatch(/claimed total/i);
+      expect(res.body.quantity).toBe(2);
+      // The claim-count warning would tell the owner items were claimed.
+      expect(res.body.warning).toBeUndefined();
+      expect(res.body.claims).toEqual([]);
     });
 
     it('should collapse a single claim back to status when going from multi to single', async () => {

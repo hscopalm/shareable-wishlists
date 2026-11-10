@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const Wishlist = require('../models/Wishlist');
 const { projectPublicListItem } = require('./publicProjection');
+const { stripItemClaims } = require('./sanitize');
 const { NotFoundError, ValidationError, UnauthorizedError } = require('./errors');
 
 async function findOwnedList(userId, listId) {
@@ -91,7 +92,11 @@ async function viewInvite({ token, userId }) {
       },
       allowAnonymousClaims: wishlist.allowAnonymousClaims
     },
-    items: wishlist.items.map(projectPublicListItem),
+    // An owner opening their own invite link must not see claims.
+    items: wishlist.items.map(item => {
+      const projected = projectPublicListItem(item);
+      return isOwner ? stripItemClaims(projected) : projected;
+    }),
     viewer: {
       isAuthenticated,
       isOwner,
