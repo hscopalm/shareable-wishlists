@@ -52,7 +52,7 @@ function errorResult(message) {
 
 function errorMessage(err, toolName) {
   if (err instanceof ServiceError) return err.message;
-  if (err instanceof mongoose.Error.CastError) return `Invalid ${err.path === '_id' ? 'id' : err.path}`;
+  if (err instanceof mongoose.Error.CastError) return 'Invalid id';
   if (err instanceof mongoose.Error.ValidationError) return err.message;
   console.error(`MCP tool ${toolName} failed:`, err);
   return `Unexpected error while running ${toolName}`;
