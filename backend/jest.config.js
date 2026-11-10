@@ -5,6 +5,7 @@ module.exports = {
   coverageDirectory: 'coverage',
   collectCoverageFrom: [
     'routes/**/*.js',
+    'services/**/*.js',
     'models/**/*.js',
     'utils/**/*.js',
     '!**/node_modules/**'
