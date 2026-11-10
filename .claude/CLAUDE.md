@@ -263,7 +263,7 @@ terraform apply     # Apply infrastructure changes
   - `/api/oauth/*` - OAuth 2.1 authorization server for MCP clients (authorize, token, register, revoke, consent)
   - `/api/mcp-tokens/*` - Manage personal access tokens and connected OAuth apps (requires auth)
   - `/.well-known/oauth-*` - OAuth discovery metadata
-  - MCP, OAuth, discovery and token routes all 404 unless `MCP_ENABLED=true`. Code lives in `backend/mcp/` (tool pattern documented in `backend/mcp/tools/index.js`)
+  - MCP, OAuth, discovery and token routes all 404 unless `MCP_ENABLED=true`. Code lives in `backend/mcp/` (tool pattern documented in `backend/mcp/tools/index.js`). Setup and testing: `docs/mcp.md`
 
 ### Frontend State Management
 - **AuthContext**: User authentication state, login/logout methods
@@ -296,10 +296,10 @@ Frontend uses empty base URL (`API_BASE_URL = ''`) because CloudFront handles ro
 - `NODE_ENV` - Environment (development/production)
 - `COOKIE_DOMAIN` - Cookie domain setting (only used in production)
 - `PORT` - Backend port (default: 5000)
+- `MCP_ENABLED` - Set to "true" to enable the MCP server and OAuth endpoints (default off; "false" in production until launch)
+- `PUBLIC_BASE_URL` - Public origin used as OAuth issuer and MCP resource URL (default `FRONTEND_URL`)
 - `DEV_AUTO_LOGIN` - Set to "true" to bypass Google OAuth in development
 - `DEV_USER_EMAIL` - Email of user to auto-login as in dev mode (default: hscopalm@gmail.com)
-- `MCP_ENABLED` - Set to "true" to serve the MCP server and its OAuth endpoints (default off)
-- `PUBLIC_BASE_URL` - Public origin used as OAuth issuer and MCP resource URL (default: FRONTEND_URL)
 - `GOOGLE_SA_USERNAME` - Email service username (optional - email disabled if not set)
 - `GOOGLE_APP_PASSWORD` - Email service app password (optional - email disabled if not set)
 

@@ -117,3 +117,24 @@ export const setAnonymousClaims = async (listId, allow) => {
   const response = await api.put(`/api/share/${listId}/anonymous-claims`, { allow });
   return response.data;
 };
+
+// AI assistant (MCP) access tokens and connected apps
+export const listMcpTokens = async () => {
+  const response = await api.get('/api/mcp-tokens');
+  return response.data;
+};
+
+export const createMcpToken = async (name, scope) => {
+  const response = await api.post('/api/mcp-tokens', { name, scope });
+  return response.data;
+};
+
+export const revokeMcpToken = async (id) => {
+  const response = await api.delete(`/api/mcp-tokens/${id}`);
+  return response.data;
+};
+
+export const revokeMcpConnection = async (clientId) => {
+  const response = await api.delete(`/api/mcp-tokens/connections/${encodeURIComponent(clientId)}`);
+  return response.data;
+};

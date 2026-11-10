@@ -10,6 +10,8 @@ import SharedListsPage from './pages/SharedListsPage';
 import { ListProvider } from './contexts/ListContext';
 import ListsPage from './pages/ListsPage';
 import TermsOfServicePage from './pages/TermsOfServicePage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
+import ConnectAssistantPage from './pages/ConnectAssistantPage';
 import InvitePage from './pages/InvitePage';
 
 const LoadingSpinner = () => (
@@ -124,6 +126,7 @@ function AppContent() {
           {/* /login is retired — the landing page carries sign-in inline */}
           <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/terms" element={<Shell><TermsOfServicePage /></Shell>} />
+          <Route path="/privacy" element={<Shell><PrivacyPolicyPage /></Shell>} />
           <Route path="/invite/:token" element={<Shell><InvitePage /></Shell>} />
           <Route
             path="/"
@@ -137,6 +140,11 @@ function AppContent() {
           <Route path="/shared" element={
             <ProtectedRoute>
               <Shell><SharedListsPage /></Shell>
+            </ProtectedRoute>
+          } />
+          <Route path="/connect" element={
+            <ProtectedRoute>
+              <Shell><ConnectAssistantPage /></Shell>
             </ProtectedRoute>
           } />
           <Route path="*" element={<Navigate to="/" />} />
