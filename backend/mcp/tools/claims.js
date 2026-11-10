@@ -1,6 +1,6 @@
 const { z } = require('zod');
 const claimsService = require('../../services/claims');
-const { formatItem } = require('../format');
+const { formatItem, toPlain } = require('../format');
 
 module.exports = [
   {
@@ -30,6 +30,38 @@ module.exports = [
       const mine = data.item.claims.find(c => c.byMe);
       const text = `Claimed "${data.item.title}"${mine && mine.quantity > 1 ? ` x${mine.quantity}` : ''}.`;
       return { text, data, wishlistId: listId };
+    }
+  },
+  {
+    name: 'unclaim_item',
+    title: 'Unclaim item',
+    description: 'Remove the user\'s claim from an item on a list shared with them, so others can claim it. '
+      + 'Does nothing if the user has no claim on it. Get listId from list_shared_with_me and itemId from get_list.',
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },
+    inputSchema: {
+      listId: z.string().describe('ID of a list shared with the user, from list_shared_with_me'),
+      itemId: z.string().describe('Item ID from get_list')
+    },
+    async handler({ listId, itemId }, ctx) {
+      const item = await claimsService.claimItem({ userId: ctx.userId, listId, itemId, quantity: 0 });
+      const data = { item: formatItem(item, { viewerId: ctx.userId, includeClaims: true }) };
+      return { text: `Removed your claim on "${data.item.title}".`, data, wishlistId: listId };
+    }
+  },
+  {
+    name: 'get_my_claims',
+    title: 'Get my claims',
+    description: 'List every item the user has claimed on lists shared with them, grouped by list with the list owner. '
+      + 'Use it to answer "what am I buying for whom". Lists no longer shared with the user are left out.',
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
+    inputSchema: {},
+    async handler(_args, ctx) {
+      const lists = toPlain(await claimsService.getMyClaims({ userId: ctx.userId }));
+      const text = lists.length
+        ? lists.map(l => `${l.listName} (${l.owner.name || 'someone'}, list id ${l.listId}):\n`
+          + l.items.map(i => `- ${i.title} (id ${i.id})${i.myQuantity > 1 ? ` x${i.myQuantity}` : ''}`).join('\n')).join('\n')
+        : 'You have not claimed anything yet.';
+      return { text, data: { lists } };
     }
   }
 ];

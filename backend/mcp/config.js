@@ -21,6 +21,8 @@ function getMcpConfig(overrides = {}) {
     // Requests per minute per authenticated user on /api/mcp. Raised under
     // test so suites can make many calls quickly.
     rateLimitPerMinute: isTest ? 10000 : 60,
+    // share_list calls per user per hour (enforced in the tool, in memory).
+    shareLimitPerHour: 20,
     // Passed to the SDK OAuth handlers. false disables their IP-based limits.
     oauthRateLimit: isTest ? false : undefined,
     ...overrides,

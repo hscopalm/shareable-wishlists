@@ -38,6 +38,9 @@ const { SCOPES } = require('../config');
 const TOOL_MODULES = [
   require('./account'),
   require('./lists'),
+  require('./items'),
+  require('./sharing'),
+  require('./invites'),
   require('./claims')
 ];
 
