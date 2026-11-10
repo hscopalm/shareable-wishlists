@@ -11,7 +11,8 @@ The whole feature is off unless `MCP_ENABLED=true`. When off, `/api/mcp`, `/api/
 ```bash
 docker-compose up --build -d        # .env.development needs MCP_ENABLED=true and PUBLIC_BASE_URL=http://localhost (see env.example)
 cd backend && npm run seed
-npm run mcp:token -- --email hscopalm@gmail.com --scope wishlists   # prints a PAT
+npm run mcp:token -- --email alice.johnson@example.com --scope wishlists   # prints a PAT
+npm run mcp:e2e                      # OAuth + tools + spoiler checks against http://localhost (needs DEV_AUTO_LOGIN=true)
 ```
 
 MCP Inspector:

@@ -10,7 +10,8 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "mcp:token": "node scripts/create-token.js"
+    "mcp:token": "node scripts/create-token.js",
+    "mcp:e2e": "node scripts/mcp-e2e.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.2",
